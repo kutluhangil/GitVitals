@@ -7,9 +7,9 @@ import { useAnalyzeRepo } from "@/hooks/use-analyze";
 import { useToast } from "@/hooks/use-toast";
 
 const LOADING_STEPS = [
-  "Fetching repository data from GitHub...",
-  "Analyzing commit history and graphs...",
-  "Calculating repository health score...",
+  "Fetching data from GitHub...",
+  "Analyzing activity and metrics...",
+  "Calculating health score...",
   "Generating final insights...",
 ];
 
@@ -23,15 +23,19 @@ export default function Home() {
 
   const handleAnalyze = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputUrl.includes("github.com/")) {
+    const trimmedUrl = inputUrl.trim();
+    
+    // Accept both github.com/owner/repo and github.com/username formats
+    if (!trimmedUrl.includes("github.com")) {
       toast({
         title: "Invalid URL",
-        description: "Please enter a valid GitHub repository URL.",
+        description: "Please enter a valid GitHub repository or profile URL (e.g., github.com/facebook/react or github.com/gaearon).",
         variant: "destructive"
       });
       return;
     }
-    setSubmitUrl(inputUrl);
+    
+    setSubmitUrl(trimmedUrl);
     setLoadingStepIdx(0);
   };
 
@@ -103,7 +107,7 @@ export default function Home() {
                 </h1>
                 
                 <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto lg:mx-0">
-                  Paste a URL to generate beautiful insights, developer metrics, and a comprehensive repository health score instantly.
+                  Analyze any GitHub repository or developer profile to get detailed insights and metrics instantly.
                 </p>
 
                 <form onSubmit={handleAnalyze} className="relative max-w-xl mx-auto lg:mx-0 group">
@@ -114,7 +118,7 @@ export default function Home() {
                     </div>
                     <input 
                       type="text" 
-                      placeholder="https://github.com/facebook/react" 
+                      placeholder="https://github.com/facebook/react or https://github.com/gaearon" 
                       value={inputUrl}
                       onChange={(e) => setInputUrl(e.target.value)}
                       className="flex-1 bg-transparent border-none text-foreground placeholder:text-muted-foreground focus:outline-none py-3 text-lg"

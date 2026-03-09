@@ -4,18 +4,79 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 
-// Helper to extract owner and repo from a GitHub URL
-function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
+// Helper to parse GitHub URLs (repo or profile)
+function parseGitHubUrl(url: string): { type: 'repo' | 'profile'; owner: string; repo?: string } | null {
   try {
     const parsed = new URL(url);
-    if (parsed.hostname !== "github.com") return null;
-    const parts = parsed.pathname.split("/").filter(Boolean);
-    if (parts.length >= 2) {
-      return { owner: parts[0], repo: parts[1] };
+    if (parsed.hostname !== "github.com" && parsed.hostname !== "www.github.com") return null;
+    
+    let pathname = parsed.pathname;
+    if (pathname.endsWith("/")) pathname = pathname.slice(0, -1);
+    
+    const parts = pathname.split("/").filter(Boolean);
+    
+    if (parts.length === 0) return null;
+    
+    // Profile URL: https://github.com/username
+    if (parts.length === 1) {
+      return { type: 'profile', owner: parts[0] };
     }
+    
+    // Repository URL: https://github.com/owner/repo
+    if (parts.length >= 2) {
+      return { type: 'repo', owner: parts[0], repo: parts[1] };
+    }
+    
     return null;
   } catch {
     return null;
+  }
+}
+
+async function fetchGitHubProfileData(username: string) {
+  const headers = {
+    "Accept": "application/vnd.github.v3+json",
+    "User-Agent": "GitVitals-App",
+    ...(process.env.GITHUB_TOKEN ? { "Authorization": `Bearer ${process.env.GITHUB_TOKEN}` } : {})
+  };
+
+  try {
+    const userRes = await fetch(`https://api.github.com/users/${username}`, { headers });
+    if (!userRes.ok) {
+      if (userRes.status === 404) throw new Error("GitHub profile not found");
+      throw new Error(`GitHub API error: ${userRes.statusText}`);
+    }
+    const userInfo = await userRes.json();
+    
+    const reposRes = await fetch(`https://api.github.com/users/${username}/repos?sort=stars&per_page=5`, { headers });
+    const repos = reposRes.ok ? await reposRes.json() : [];
+
+    return {
+      type: 'profile',
+      overview: {
+        username: userInfo.login,
+        name: userInfo.name || userInfo.login,
+        bio: userInfo.bio,
+        followers: userInfo.followers,
+        following: userInfo.following,
+        publicRepos: userInfo.public_repos,
+        avatarUrl: userInfo.avatar_url,
+        location: userInfo.location,
+        createdAt: userInfo.created_at,
+      },
+      topRepos: repos.map((r: any) => ({
+        name: r.name,
+        stars: r.stargazers_count,
+        forks: r.forks_count,
+        description: r.description,
+      })),
+      stats: {
+        totalStars: repos.reduce((sum: number, r: any) => sum + r.stargazers_count, 0),
+        totalForks: repos.reduce((sum: number, r: any) => sum + r.forks_count, 0),
+      }
+    };
+  } catch (err: any) {
+    throw err;
   }
 }
 
@@ -128,18 +189,18 @@ export async function registerRoutes(
   
   app.get(api.analyze.get.path, async (req, res) => {
     try {
-      const repoUrl = req.query.url;
-      if (!repoUrl || typeof repoUrl !== "string") {
-        return res.status(400).json({ message: "Repository URL is required" });
+      const inputUrl = req.query.url;
+      if (!inputUrl || typeof inputUrl !== "string") {
+        return res.status(400).json({ message: "GitHub URL is required" });
       }
 
-      const parsedInfo = parseGitHubUrl(repoUrl);
+      const parsedInfo = parseGitHubUrl(inputUrl);
       if (!parsedInfo) {
-        return res.status(400).json({ message: "Invalid GitHub repository URL" });
+        return res.status(400).json({ message: "Invalid GitHub URL. Please provide a valid repository or profile URL (e.g., https://github.com/facebook/react or https://github.com/gaearon)" });
       }
 
       // Check if we have a recent cached analysis (within last 1 hour)
-      const existing = await storage.getAnalysisByUrl(repoUrl);
+      const existing = await storage.getAnalysisByUrl(inputUrl);
       if (existing) {
         const ageInHours = (Date.now() - new Date(existing.createdAt).getTime()) / (1000 * 60 * 60);
         if (ageInHours < 1) {
@@ -147,16 +208,26 @@ export async function registerRoutes(
         }
       }
 
-      // Fetch fresh data from GitHub
-      const analysisData = await fetchGitHubData(parsedInfo.owner, parsedInfo.repo);
+      let analysisData;
+
+      if (parsedInfo.type === 'repo' && parsedInfo.repo) {
+        // Repository analysis
+        analysisData = await fetchGitHubData(parsedInfo.owner, parsedInfo.repo);
+      } else if (parsedInfo.type === 'profile') {
+        // For now, fetch the user's first repo as a demo, or fetch profile data
+        // This is a simplified version - a full implementation would fetch comprehensive profile data
+        analysisData = await fetchGitHubProfileData(parsedInfo.owner);
+      } else {
+        return res.status(400).json({ message: "Unable to determine analysis type" });
+      }
 
       // Save to database
       try {
         if (!existing) {
           await storage.createAnalysis({
-            repoUrl,
+            repoUrl: inputUrl,
             owner: parsedInfo.owner,
-            name: parsedInfo.repo,
+            name: parsedInfo.repo || 'profile',
             data: analysisData,
           });
         }
@@ -167,14 +238,14 @@ export async function registerRoutes(
 
       res.json(analysisData);
     } catch (err: any) {
-      if (err.message?.includes("rate limit")) {
-        return res.status(429).json({ message: err.message });
-      }
-      if (err.message?.includes("not found")) {
-        return res.status(404).json({ message: err.message });
-      }
       console.error("Analysis error:", err);
-      res.status(500).json({ message: "Failed to analyze repository" });
+      if (err.message?.includes("rate limit")) {
+        return res.status(429).json({ message: "GitHub API rate limit exceeded. Please try again later." });
+      }
+      if (err.message?.includes("not found") || err.message?.includes("404")) {
+        return res.status(404).json({ message: "Repository or profile not found. Please check the URL and try again." });
+      }
+      res.status(500).json({ message: err.message || "Failed to analyze GitHub URL" });
     }
   });
 

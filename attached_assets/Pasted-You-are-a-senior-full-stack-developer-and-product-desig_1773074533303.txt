@@ -1,0 +1,410 @@
+You are a senior full-stack developer and product designer.
+
+Your task is to design and build a modern web application called **GitVitals**.
+
+GitVitals is a free developer tool that analyzes **both GitHub repositories and GitHub profiles** and generates visual insights about activity, structure, and health.
+
+The application must be minimalistic, elegant, and modern with a dark theme UI.
+
+Focus on clean design, smooth animations, and clear developer insights.
+
+--------------------------------------------------
+
+PRODUCT NAME
+
+GitVitals
+
+Tagline:
+"Understand GitHub repositories and developer profiles in seconds."
+
+--------------------------------------------------
+
+PRODUCT PURPOSE
+
+GitVitals allows users to analyze:
+
+1) GitHub repositories  
+2) GitHub developer profiles
+
+The system should generate clear insights about:
+
+repository health  
+project activity  
+developer productivity  
+open source contribution patterns
+
+The UI should transform GitHub data into **visual, easy-to-understand insights.**
+
+--------------------------------------------------
+
+MAIN USER FLOW
+
+Landing page contains two analysis modes:
+
+1️⃣ Repository Analysis  
+2️⃣ Profile Analysis
+
+User options:
+
+• paste repository URL  
+• paste GitHub profile URL  
+• enter GitHub username
+
+Example inputs:
+
+Repository:
+https://github.com/vercel/next.js
+
+Profile:
+https://github.com/gaearon
+
+or
+
+username:
+gaearon
+
+--------------------------------------------------
+
+LANDING PAGE DESIGN
+
+Minimalist hero layout.
+
+Title:
+
+GitVitals
+
+Subtitle:
+
+Analyze GitHub repositories and developer profiles instantly.
+
+Input field placeholder:
+
+Paste GitHub repository or profile URL
+
+Primary button:
+
+Analyze
+
+Include a subtle animated **heartbeat / pulse animation** that represents project activity.
+
+The heartbeat line should animate and transform into **git commit nodes and lines**.
+
+--------------------------------------------------
+
+REPOSITORY ANALYSIS FEATURES
+
+When a repository is analyzed, display the following sections.
+
+Repository Overview
+
+• Repository name  
+• Owner  
+• Description  
+• Creation date  
+• Last updated date  
+• Default branch  
+• License type  
+• Repository size  
+
+Activity Metrics
+
+• Total commits  
+• Commits last 30 days  
+• Commits last 90 days  
+• Average commits per month  
+• Last commit date  
+
+Visualization:
+
+commit activity graph
+
+--------------------------------------------------
+
+Contributors Analysis
+
+• total contributors  
+• top contributors  
+• contribution distribution  
+• contributor ranking  
+
+Estimate a **Bus Factor**
+
+Bus Factor = number of developers responsible for majority of commits.
+
+--------------------------------------------------
+
+Language Distribution
+
+Example:
+
+JavaScript 65%  
+TypeScript 20%  
+CSS 10%  
+HTML 5%
+
+Visualization:
+
+donut chart
+
+--------------------------------------------------
+
+Popularity Metrics
+
+• Stars  
+• Forks  
+• Watchers  
+• Open issues  
+• Closed issues  
+• Pull requests  
+
+--------------------------------------------------
+
+Maintenance Health
+
+• Issue resolution speed  
+• Pull request merge rate  
+• Average review time  
+
+--------------------------------------------------
+
+Codebase Insights
+
+• estimated lines of code  
+• number of files  
+• directory structure depth  
+
+--------------------------------------------------
+
+Repository Health Score
+
+Calculate a score between **0 and 100**.
+
+Factors:
+
+commit frequency  
+recent activity  
+contributor diversity  
+issue resolution speed  
+repository popularity  
+
+Score levels:
+
+90–100 → Excellent  
+75–89 → Healthy  
+50–74 → Moderate  
+30–49 → Risky  
+0–29 → Inactive
+
+--------------------------------------------------
+
+GITHUB PROFILE ANALYSIS FEATURES
+
+When a developer profile is analyzed, display the following metrics.
+
+--------------------------------------------------
+
+Profile Overview
+
+• username  
+• name  
+• bio  
+• followers  
+• following  
+• public repositories  
+• account creation date  
+• location (if available)  
+
+--------------------------------------------------
+
+Contribution Activity
+
+• total commits (estimated across repos)  
+• commits in last year  
+• contribution streak  
+• active days per year  
+
+Visualization:
+
+GitHub contribution heatmap style chart.
+
+--------------------------------------------------
+
+Repository Portfolio
+
+Analyze the user's repositories.
+
+Metrics:
+
+• total repositories  
+• number of active repositories  
+• most starred repository  
+• most forked repository  
+• average stars per repository  
+
+--------------------------------------------------
+
+Language Expertise
+
+Analyze languages used across repositories.
+
+Display:
+
+Top programming languages used.
+
+Example:
+
+JavaScript 48%  
+TypeScript 22%  
+Python 15%  
+Go 10%  
+Other 5%
+
+Visualization:
+
+language distribution chart.
+
+--------------------------------------------------
+
+Open Source Impact
+
+Metrics:
+
+• total stars across repositories  
+• total forks across repositories  
+• total watchers  
+
+--------------------------------------------------
+
+Collaboration Metrics
+
+• number of contributors in user's repositories  
+• number of repositories contributed to  
+
+--------------------------------------------------
+
+Developer Activity Score
+
+Calculate a **Developer Activity Score (0-100)** based on:
+
+recent commits  
+number of repositories  
+contribution consistency  
+open source impact  
+repository popularity  
+
+Score levels:
+
+90–100 → Highly Active Developer  
+75–89 → Active Developer  
+50–74 → Moderate Activity  
+30–49 → Low Activity  
+0–29 → Inactive
+
+--------------------------------------------------
+
+VISUAL COMPONENTS
+
+Include charts for:
+
+commit frequency  
+language distribution  
+contribution heatmap  
+repository popularity  
+developer activity score  
+
+Use smooth animated charts.
+
+--------------------------------------------------
+
+ANIMATIONS
+
+Animations should include:
+
+fade in sections  
+number counter animations  
+chart reveal animations  
+
+Example:
+
+Stars counter:
+
+0 → 8,452
+
+--------------------------------------------------
+
+EXPORT FEATURES
+
+Users should be able to export analysis reports.
+
+Options:
+
+Export as PDF
+
+The PDF must include:
+
+repository or profile overview  
+charts  
+health scores  
+metrics  
+
+--------------------------------------------------
+
+EMAIL REPORT
+
+Allow users to email the report.
+
+Input:
+
+Enter email
+
+The email should contain:
+
+PDF report  
+summary metrics  
+link to report page
+
+--------------------------------------------------
+
+TECHNOLOGY STACK
+
+Frontend
+
+React  
+TypeScript  
+Tailwind CSS  
+Framer Motion  
+Chart.js  
+
+Backend
+
+Node.js  
+Express  
+
+API
+
+GitHub REST API  
+GitHub GraphQL API  
+
+--------------------------------------------------
+
+DESIGN STYLE
+
+Minimalist  
+Modern  
+Dark UI  
+Developer tool aesthetic  
+
+Inspired by products like:
+
+GitHub  
+Vercel  
+Linear  
+Supabase  
+
+--------------------------------------------------
+
+FINAL GOAL
+
+Create a fast, elegant, and powerful developer tool that converts GitHub repository data and developer profile data into a beautiful and insightful analysis report.
+
+The experience should feel like a professional SaaS developer analytics tool.
