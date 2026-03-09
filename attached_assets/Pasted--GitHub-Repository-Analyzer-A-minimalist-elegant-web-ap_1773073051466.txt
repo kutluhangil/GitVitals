@@ -1,0 +1,654 @@
+# GitHub Repository Analyzer
+
+A minimalist, elegant web application that analyzes any public GitHub repository and provides detailed insights about its activity, structure, and health.
+
+Users simply paste a GitHub repository URL and instantly receive a structured and animated analysis report.
+
+The platform is designed to be **fast, free, simple, and developer-friendly**.
+
+---
+
+# Product Vision
+
+Developers, recruiters, and open-source contributors often need to quickly evaluate a GitHub repository.
+
+Important questions include:
+
+- Is the project active?
+- How many people contribute to it?
+- What technologies are used?
+- Is the repository well maintained?
+
+GitHub Repository Analyzer transforms raw GitHub data into **clear insights, visual metrics, and a health score**.
+
+The goal is to build a **minimalist but powerful developer tool**.
+
+---
+
+# Core Features
+
+## Repository Analysis
+
+User inputs a repository URL.
+
+Example:
+
+```
+https://github.com/facebook/react
+```
+
+The system fetches repository data and generates a structured analysis.
+
+---
+
+# Analysis Data
+
+The analyzer should provide multiple layers of insights.
+
+---
+
+# 1. Repository Overview
+
+Basic repository metadata:
+
+- Repository name
+- Owner
+- Description
+- Creation date
+- Last updated date
+- Default branch
+- License type
+- Repository size
+- Number of files (estimated)
+- Repository visibility
+
+Example output:
+
+```
+Repository: react
+Owner: facebook
+Created: 2013
+Last Updated: recently
+License: MIT
+Size: 180 MB
+```
+
+---
+
+# 2. Activity Metrics
+
+Repository activity analysis:
+
+- Total commits
+- Commits in last 30 days
+- Commits in last 90 days
+- Average commits per month
+- Last commit date
+- Commit activity trend
+
+Example metrics:
+
+```
+Total commits: 12450
+Last 30 days: 85
+Average per month: 120
+Last commit: 2 days ago
+```
+
+Visualization:
+
+- commit frequency chart
+- activity timeline
+
+---
+
+# 3. Contributors Analysis
+
+Contributor insights:
+
+- Total contributors
+- Top contributors
+- Contribution percentages
+- Contributor activity ranking
+
+Example:
+
+```
+Contributors: 145
+Top contributor: 24% of commits
+```
+
+Bus Factor estimate:
+
+Bus Factor represents the number of contributors responsible for most of the work.
+
+Example:
+
+```
+Bus Factor: 3
+```
+
+Meaning: if three key developers leave, the project could be at risk.
+
+---
+
+# 4. Language Distribution
+
+The analyzer retrieves language statistics.
+
+Example:
+
+```
+JavaScript: 65%
+TypeScript: 20%
+CSS: 10%
+HTML: 5%
+```
+
+Visualization:
+
+- donut chart
+- animated language bars
+
+---
+
+# 5. Repository Popularity
+
+Popularity indicators:
+
+- Stars
+- Forks
+- Watchers
+- Open issues
+- Closed issues
+- Pull requests
+
+Example:
+
+```
+Stars: 210k
+Forks: 43k
+Watchers: 6k
+Open Issues: 900
+Closed Issues: 12k
+```
+
+---
+
+# 6. Issue & Maintenance Health
+
+Repository maintenance indicators:
+
+- open vs closed issues
+- average issue resolution time
+- pull request merge rate
+- pull request approval time
+- issue response speed
+
+Example:
+
+```
+Issue resolution time: 4.2 days
+PR merge rate: 92%
+```
+
+---
+
+# 7. Codebase Insights
+
+Structural insights about the repository:
+
+- estimated lines of code
+- total files
+- folder depth
+- largest directories
+- largest files
+
+Example:
+
+```
+Files: 2,450
+Directories: 120
+Largest folder: src
+Estimated LOC: 380,000
+```
+
+---
+
+# 8. Repository Health Score
+
+The system calculates a **health score from 0 to 100**.
+
+Factors include:
+
+- activity frequency
+- contributor diversity
+- issue management
+- documentation presence
+- update frequency
+- community engagement
+
+Example:
+
+```
+Health Score: 82 / 100
+Status: Healthy Project
+```
+
+Score meaning:
+
+```
+90 - 100  Excellent
+75 - 89   Healthy
+50 - 74   Moderate
+30 - 49   Risky
+0 - 29    Inactive
+```
+
+---
+
+# UI / UX Design
+
+Design principles:
+
+- minimalist
+- modern
+- elegant
+- dark theme
+- smooth animations
+
+---
+
+# Color Palette
+
+Background
+
+```
+#0f0f0f
+```
+
+Card Background
+
+```
+#1a1a1a
+```
+
+Accent
+
+```
+#4f46e5
+```
+
+Text
+
+```
+#ffffff
+#aaaaaa
+```
+
+Success
+
+```
+#10b981
+```
+
+Warning
+
+```
+#f59e0b
+```
+
+Danger
+
+```
+#ef4444
+```
+
+---
+
+# Landing Page
+
+The landing page should be extremely simple.
+
+Layout:
+
+Centered input with title.
+
+Example layout:
+
+```
+GitHub Repository Analyzer
+
+Analyze any GitHub repository instantly
+
+[ Paste GitHub repository URL ]
+
+[ Analyze Repository ]
+```
+
+---
+
+# Analysis Flow
+
+When the user clicks analyze:
+
+Loading animation appears.
+
+Example loading steps:
+
+```
+Fetching repository data...
+Analyzing commits...
+Calculating repository health...
+Generating insights...
+```
+
+After loading, results appear **section by section with animation**.
+
+---
+
+# Animations
+
+Animations should feel smooth and modern.
+
+Examples:
+
+- fade in
+- slide up
+- number counters
+- chart animations
+
+Example:
+
+```
+Commits counter: 0 → 1250
+Stars counter: 0 → 5600
+```
+
+Libraries that can help:
+
+- Framer Motion
+- Chart.js
+- Recharts
+- D3.js
+
+---
+
+# Export Report (PDF)
+
+Users can export the analysis report as a PDF.
+
+Button:
+
+```
+Export as PDF
+```
+
+PDF should contain:
+
+- repository overview
+- metrics
+- charts
+- health score
+- contributor insights
+
+Suggested libraries:
+
+Frontend:
+
+```
+html2canvas
+jsPDF
+```
+
+Backend option:
+
+```
+Puppeteer
+```
+
+---
+
+# Email Report
+
+Users can send the report to their email.
+
+Input field:
+
+```
+Enter your email
+```
+
+Email includes:
+
+- PDF report
+- summary metrics
+- link to analysis page
+
+Possible services:
+
+```
+Nodemailer
+SendGrid
+Resend
+```
+
+---
+
+# Technology Stack
+
+Suggested stack:
+
+Frontend
+
+```
+React
+TypeScript
+Tailwind CSS
+Framer Motion
+Chart.js
+```
+
+Backend
+
+```
+Node.js
+Express
+```
+
+API
+
+```
+GitHub REST API
+GitHub GraphQL API
+```
+
+Deployment
+
+```
+Vercel
+Render
+```
+
+---
+
+# GitHub API Endpoints
+
+Repository info
+
+```
+GET /repos/{owner}/{repo}
+```
+
+Commits
+
+```
+GET /repos/{owner}/{repo}/commits
+```
+
+Languages
+
+```
+GET /repos/{owner}/{repo}/languages
+```
+
+Contributors
+
+```
+GET /repos/{owner}/{repo}/contributors
+```
+
+Issues
+
+```
+GET /repos/{owner}/{repo}/issues
+```
+
+Pull requests
+
+```
+GET /repos/{owner}/{repo}/pulls
+```
+
+---
+
+# Performance Optimization
+
+GitHub API has rate limits.
+
+Solutions:
+
+- caching results
+- storing results temporarily
+- limiting repeated requests
+
+Possible technologies:
+
+```
+Redis
+In-memory cache
+```
+
+Recommended cache duration:
+
+```
+10 minutes per repository
+```
+
+---
+
+# Error Handling
+
+Possible errors:
+
+Repository not found
+
+```
+Repository does not exist
+```
+
+Private repository
+
+```
+This repository is private and cannot be analyzed
+```
+
+GitHub rate limit
+
+```
+GitHub API limit reached. Please try again later.
+```
+
+Invalid URL
+
+```
+Please enter a valid GitHub repository URL
+```
+
+---
+
+# Security Considerations
+
+Important protections:
+
+- validate GitHub URLs
+- sanitize user input
+- prevent API abuse
+- rate limit requests
+
+---
+
+# Future Features
+
+Possible upgrades:
+
+- AI repository summary
+- code quality analysis
+- dependency risk detection
+- security vulnerability analysis
+- repository comparison
+- developer portfolio integration
+- repository monitoring
+- weekly activity reports
+
+---
+
+# Roadmap
+
+Phase 1
+
+Basic repository analysis  
+Language statistics  
+Contributor list  
+
+Phase 2
+
+Charts and visual analytics  
+Repository health score  
+
+Phase 3
+
+PDF export  
+Email report system  
+
+Phase 4
+
+Advanced analytics  
+AI insights  
+
+---
+
+# Target Users
+
+- developers
+- open source contributors
+- recruiters
+- technical interviewers
+- startup founders
+
+---
+
+# Example Use Cases
+
+Developers can:
+
+- evaluate open source projects
+- analyze competitors
+- understand unfamiliar repositories quickly
+
+Recruiters can:
+
+- evaluate developer GitHub portfolios
+
+---
+
+# Summary
+
+GitHub Repository Analyzer is designed to be:
+
+- simple
+- elegant
+- fast
+- completely free
+
+It converts raw GitHub data into a **beautiful, structured, and insightful repository report**.

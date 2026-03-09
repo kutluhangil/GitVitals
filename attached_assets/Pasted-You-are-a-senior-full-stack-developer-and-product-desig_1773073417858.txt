@@ -1,0 +1,473 @@
+You are a senior full-stack developer and product designer.
+
+Your task is to design and build a modern web application called **GitVitals**.
+
+GitVitals is a free developer tool that analyzes any public GitHub repository and generates a visual report about its activity, structure, and health.
+
+The application must be minimalistic, elegant, and modern with a dark theme UI.
+
+Focus on clean design, smooth animations, and clear developer insights.
+
+---
+
+PROJECT NAME
+
+GitVitals
+
+Tagline suggestion:
+
+"Understand any GitHub repository in seconds."
+
+---
+
+PROJECT GOAL
+
+The goal of GitVitals is to allow users to paste a GitHub repository URL and instantly receive a detailed repository analysis.
+
+The analysis should include repository activity, contributor insights, language statistics, and a calculated repository health score.
+
+The interface must be simple and fast.
+
+User flow should feel smooth and intuitive.
+
+---
+
+MAIN USER FLOW
+
+1. User opens the website.
+2. User pastes a GitHub repository URL.
+3. User clicks "Analyze Repository".
+4. A loading animation appears showing progress steps.
+5. The system fetches repository data using GitHub APIs.
+6. The results appear gradually with smooth animations.
+7. The user can export the report as a PDF.
+8. The user can optionally send the report to their email.
+
+---
+
+LANDING PAGE DESIGN
+
+The landing page must be extremely minimal.
+
+Centered layout.
+
+Sections:
+
+Header
+
+Logo text:
+GitVitals
+
+Hero Section
+
+Title:
+GitVitals
+
+Subtitle:
+Analyze any GitHub repository instantly.
+
+Input field placeholder:
+Paste GitHub repository URL
+
+Primary button:
+Analyze Repository
+
+Example layout:
+
+GitVitals
+
+Analyze any GitHub repository instantly
+
+[ Paste GitHub Repository URL ]
+
+[ Analyze Repository ]
+
+---
+
+UI DESIGN REQUIREMENTS
+
+The UI must follow a dark theme with minimalist styling.
+
+Color palette:
+
+Background
+#0f0f0f
+
+Card background
+#1a1a1a
+
+Primary accent
+#4f46e5
+
+Text
+#ffffff
+#aaaaaa
+
+Success
+#10b981
+
+Warning
+#f59e0b
+
+Danger
+#ef4444
+
+Design style:
+
+minimal
+clean
+modern
+developer-focused
+high readability
+
+---
+
+ANIMATION REQUIREMENTS
+
+Results must appear progressively with animations.
+
+Use smooth transitions such as:
+
+fade-in
+slide-up
+counter animations
+chart animations
+
+Example counter animation:
+
+Commit count animates from
+
+0 → 1250
+
+Charts should animate when they appear.
+
+---
+
+ANALYSIS DATA TO DISPLAY
+
+The system must analyze the repository and provide the following information.
+
+---
+
+1. REPOSITORY OVERVIEW
+
+Display basic repository metadata.
+
+Required data:
+
+Repository name
+Owner
+Description
+Creation date
+Last updated date
+Default branch
+License type
+Repository size
+Visibility
+
+Example output:
+
+Repository: react
+Owner: facebook
+Created: 2013
+License: MIT
+Size: 180 MB
+
+---
+
+2. ACTIVITY METRICS
+
+Repository activity insights:
+
+Total commits
+Commits in last 30 days
+Commits in last 90 days
+Average commits per month
+Last commit date
+Commit activity trend
+
+Include a commit frequency chart.
+
+---
+
+3. CONTRIBUTORS ANALYSIS
+
+Display contributor information.
+
+Metrics:
+
+Total contributors
+Top contributors
+Contribution percentage
+Contributor ranking
+
+Also estimate a Bus Factor.
+
+Bus Factor definition:
+Number of contributors responsible for the majority of commits.
+
+Example:
+
+Bus Factor: 3
+
+---
+
+4. LANGUAGE DISTRIBUTION
+
+Display programming languages used in the repository.
+
+Example output:
+
+JavaScript 65%
+TypeScript 20%
+CSS 10%
+HTML 5%
+
+Visualization:
+
+Donut chart or animated bar chart.
+
+---
+
+5. REPOSITORY POPULARITY
+
+Show repository popularity metrics.
+
+Include:
+
+Stars
+Forks
+Watchers
+Open issues
+Closed issues
+Pull requests
+
+Example:
+
+Stars: 210k
+Forks: 43k
+Open Issues: 900
+
+---
+
+6. ISSUE & MAINTENANCE HEALTH
+
+Maintenance indicators:
+
+Open vs closed issues
+Average issue resolution time
+Pull request merge rate
+Pull request approval time
+
+Example:
+
+Issue resolution time: 4.2 days
+PR merge rate: 92%
+
+---
+
+7. CODEBASE INSIGHTS
+
+Structural insights about the repository.
+
+Display:
+
+Estimated lines of code
+Total files
+Directory depth
+Largest directories
+Largest files
+
+Example:
+
+Files: 2,450
+Directories: 120
+Estimated LOC: 380,000
+
+---
+
+8. REPOSITORY HEALTH SCORE
+
+Calculate a health score between 0 and 100.
+
+The score must be based on:
+
+commit frequency
+recent activity
+contributor diversity
+issue resolution rate
+community engagement
+repository popularity
+
+Score ranges:
+
+90 – 100 → Excellent
+75 – 89 → Healthy
+50 – 74 → Moderate
+30 – 49 → Risky
+0 – 29 → Inactive
+
+Display the score visually with a progress meter.
+
+Example:
+
+Health Score: 82 / 100
+Status: Healthy Project
+
+---
+
+EXPORT REPORT FEATURE
+
+Users must be able to export the report as a PDF.
+
+Include:
+
+repository overview
+charts
+metrics
+health score
+contributors
+
+Button label:
+
+Export as PDF
+
+---
+
+EMAIL REPORT FEATURE
+
+Users should be able to send the report to their email.
+
+Input field:
+
+Enter your email
+
+The email should contain:
+
+PDF report
+summary metrics
+link to the report
+
+---
+
+TECHNOLOGY STACK
+
+Frontend
+
+React
+TypeScript
+Tailwind CSS
+Framer Motion
+Chart.js
+
+Backend
+
+Node.js
+Express
+
+API
+
+GitHub REST API
+GitHub GraphQL API
+
+Deployment
+
+Vercel
+Render
+
+---
+
+GITHUB API ENDPOINTS
+
+Repository info
+
+GET /repos/{owner}/{repo}
+
+Commits
+
+GET /repos/{owner}/{repo}/commits
+
+Languages
+
+GET /repos/{owner}/{repo}/languages
+
+Contributors
+
+GET /repos/{owner}/{repo}/contributors
+
+Issues
+
+GET /repos/{owner}/{repo}/issues
+
+Pull requests
+
+GET /repos/{owner}/{repo}/pulls
+
+---
+
+PERFORMANCE OPTIMIZATION
+
+GitHub API has rate limits.
+
+Implement caching.
+
+Recommended:
+
+Cache repository analysis results for 10 minutes.
+
+Possible solutions:
+
+Redis
+In-memory caching
+
+---
+
+ERROR HANDLING
+
+Handle the following errors gracefully.
+
+Repository not found
+
+Repository does not exist
+
+Private repository
+
+This repository is private and cannot be analyzed
+
+GitHub rate limit
+
+GitHub API limit reached. Please try again later.
+
+Invalid URL
+
+Please enter a valid GitHub repository URL
+
+---
+
+SECURITY CONSIDERATIONS
+
+Validate repository URLs
+Sanitize user input
+Prevent API abuse
+Implement request rate limits
+
+---
+
+FUTURE FEATURES
+
+Possible upgrades:
+
+AI repository summary
+Code quality analysis
+Dependency risk detection
+Security vulnerability scan
+Repository comparison
+Weekly monitoring reports
+
+---
+
+FINAL GOAL
+
+Build a fast, elegant, and free web application that converts GitHub repository data into a beautiful and informative report.
+
+GitVitals should feel like a professional developer tool with a modern user experience.
