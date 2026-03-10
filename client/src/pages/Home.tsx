@@ -185,6 +185,31 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
+              <div className="mb-12">
+                <form onSubmit={handleAnalyze} className="relative max-w-2xl mx-auto group">
+                  <div className="absolute inset-0 bg-primary/10 blur-xl rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="relative flex items-center bg-card/50 backdrop-blur-sm border border-white/10 rounded-2xl p-1.5 shadow-xl focus-within:border-primary/40 transition-all">
+                    <div className="pl-4 pr-2 text-muted-foreground">
+                      <Search className="w-4 h-4" />
+                    </div>
+                    <input 
+                      type="text" 
+                      placeholder="Analyze another repo or profile..." 
+                      value={inputUrl}
+                      onChange={(e) => setInputUrl(e.target.value)}
+                      className="flex-1 bg-transparent border-none text-foreground placeholder:text-muted-foreground focus:outline-none py-2 text-sm"
+                      required
+                    />
+                    <button 
+                      type="submit"
+                      className="px-4 py-2 rounded-xl font-semibold bg-primary text-white hover:bg-primary/90 flex items-center gap-2 text-sm transition-all"
+                    >
+                      Analyze
+                    </button>
+                  </div>
+                </form>
+              </div>
+
               <Dashboard data={data} />
               
               <div className="mt-12 text-center">
@@ -193,9 +218,9 @@ export default function Home() {
                     setSubmitUrl(null);
                     setInputUrl("");
                   }}
-                  className="text-muted-foreground hover:text-white transition-colors flex items-center gap-2 mx-auto"
+                  className="text-muted-foreground hover:text-white transition-colors flex items-center gap-2 mx-auto text-sm"
                 >
-                  <Search className="w-4 h-4" /> Analyze another repository
+                  <ChevronRight className="w-4 h-4 rotate-180" /> Back to start
                 </button>
               </div>
             </motion.div>
