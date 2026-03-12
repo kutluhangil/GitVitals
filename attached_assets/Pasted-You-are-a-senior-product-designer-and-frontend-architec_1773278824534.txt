@@ -1,0 +1,279 @@
+You are a senior product designer and frontend architect.
+
+Redesign the GitVitals landing page hero section from scratch.
+
+The current design is too generic and looks like a typical AI or crypto landing page. The new design must feel premium, minimalist, and modern.
+
+The inspiration should come from products like:
+
+Apple
+Linear
+Vercel
+Notion
+Raycast
+
+The goal is to create a calm, elegant, developer-focused landing page.
+
+--------------------------------------------------
+
+DESIGN STYLE
+
+Minimalist  
+Clean  
+Premium  
+Modern  
+Highly readable  
+
+Avoid flashy visuals and heavy gradients.
+
+Use subtle animations and elegant spacing.
+
+--------------------------------------------------
+
+COLOR SYSTEM
+
+Use a grayscale based color palette.
+
+Primary background:
+#0f0f0f
+
+Secondary background:
+#171717
+
+Card background:
+#1f1f1f
+
+Borders:
+#2a2a2a
+
+Primary text:
+#ffffff
+
+Secondary text:
+#9ca3af
+
+Accent color (very subtle use):
+#6366f1
+
+Most of the interface should rely on **gray tones**, not bright colors.
+
+The feeling should resemble Apple’s product pages.
+
+--------------------------------------------------
+
+THEME SUPPORT
+
+Implement both modes:
+
+Dark Mode  
+Light Mode
+
+Add a toggle in the navbar.
+
+Light mode colors:
+
+Background
+#ffffff
+
+Secondary background
+#f5f5f5
+
+Text
+#111111
+
+Borders
+#e5e5e5
+
+Transitions between light and dark should be smooth.
+
+--------------------------------------------------
+
+MULTI LANGUAGE SUPPORT
+
+Add language switcher in the navbar.
+
+Supported languages:
+
+English (EN)  
+Turkish (TR)
+
+Example navbar layout:
+
+GitVitals logo
+
+Analyze  
+Compare  
+
+EN / TR toggle
+
+Light/Dark toggle
+
+--------------------------------------------------
+
+HERO SECTION REDESIGN
+
+The hero section should feel calm and premium.
+
+Layout:
+
+Centered content with strong typography.
+
+Title example:
+
+GitVitals
+
+Subtitle:
+
+Understand GitHub repositories and developers in seconds.
+
+Description:
+
+Analyze repositories, measure developer activity, detect tech stacks and compare projects with powerful insights.
+
+--------------------------------------------------
+
+INPUT AREA
+
+Below the hero text add a clean input field.
+
+Placeholder:
+
+Paste a GitHub repository or profile URL
+
+Example:
+
+github.com/vercel/next.js
+
+Primary button:
+
+Analyze
+
+The input should feel similar to Apple's search UI.
+
+Rounded edges  
+Soft shadow  
+Subtle border
+
+--------------------------------------------------
+
+VISUAL ELEMENT
+
+Replace the current random chart animation.
+
+Instead create a **meaningful product animation**.
+
+Animation idea:
+
+A thin animated pulse line representing repository activity.
+
+The pulse line slowly transforms into Git commit nodes connected by lines.
+
+Nodes appear and glow softly.
+
+The animation should represent:
+
+repository activity  
+developer contributions  
+project health  
+
+The animation must be:
+
+smooth  
+minimal  
+elegant  
+not distracting  
+
+Loop slowly.
+
+--------------------------------------------------
+
+BACKGROUND
+
+Remove the heavy grid background.
+
+Instead use:
+
+very subtle noise texture
+
+or
+
+soft gradient lighting behind the hero content.
+
+Example:
+
+a soft radial glow behind the animation.
+
+--------------------------------------------------
+
+TYPOGRAPHY
+
+Use modern developer fonts.
+
+Suggestions:
+
+Inter  
+SF Pro style  
+Manrope
+
+Large hero title.
+
+Very clean spacing.
+
+--------------------------------------------------
+
+SECONDARY SECTION (OPTIONAL)
+
+Below the hero add 3 feature cards.
+
+Repo Analyzer
+
+Analyze repository health, commits, contributors and tech stack.
+
+Developer Insights
+
+Understand developer activity and generate a developer score.
+
+Project Comparison
+
+Compare two repositories side by side.
+
+Cards should be minimal with soft shadows.
+
+--------------------------------------------------
+
+ANIMATION PRINCIPLES
+
+Animations must be subtle.
+
+Use:
+
+fade-in
+slide-up
+soft glow
+smooth counters
+
+Avoid:
+
+aggressive motion
+large bouncing animations
+flashy colors
+
+--------------------------------------------------
+
+FINAL DESIGN GOAL
+
+The GitVitals landing page should feel like a premium developer analytics tool.
+
+It should feel similar in quality to:
+
+Vercel
+Linear
+Apple product pages
+
+The first impression must be:
+
+simple
+clean
+professional
+modern
+developer-friendly
