@@ -1,74 +1,41 @@
 import { useQuery } from "@tanstack/react-query";
-import { api, buildUrl } from "@shared/routes";
-import { z } from "zod";
-
-// We define a robust expected interface for the frontend to render the dashboard
-export interface RepoAnalysisData {
-  overview: {
-    owner: string;
-    name: string;
-    description: string;
-    sizeKb: number;
-    license: string;
-    createdAt: string;
-    avatarUrl: string;
-  };
-  activity: {
-    totalCommits: number;
-    commitsTrend: Array<{ date: string; count: number }>;
-  };
-  contributors: {
-    count: number;
-    busFactor: number;
-    top: Array<{ login: string; contributions: number; avatarUrl: string }>;
-  };
-  languages: Array<{ name: string; value: number }>;
-  popularity: {
-    stars: number;
-    forks: number;
-    watchers: number;
-    openIssues: number;
-  };
-  health: {
-    score: number; // 0-100
-    status: 'Excellent' | 'Healthy' | 'Moderate' | 'Risky' | 'Inactive';
-    openClosedRatio: number;
-    resolutionTimeHours: number;
-  };
-  codebase: {
-    linesOfCode: number;
-    totalFiles: number;
-    directoryDepth: number;
-  };
-}
+import { api } from "@shared/routes";
 
 export function useAnalyzeRepo(repoUrl: string | null) {
   return useQuery({
     queryKey: [api.analyze.get.path, repoUrl],
     queryFn: async () => {
       if (!repoUrl) return null;
-      
-      const encodedUrl = encodeURIComponent(repoUrl);
-      const url = `${api.analyze.get.path}?url=${encodedUrl}`;
-      
-      const res = await fetch(url, { credentials: "include" });
-      
+      const res = await fetch(`${api.analyze.get.path}?url=${encodeURIComponent(repoUrl)}`, { credentials: "include" });
       if (!res.ok) {
-        let errorMsg = "Failed to analyze repository";
-        try {
-          const errData = await res.json();
-          if (errData.message) errorMsg = errData.message;
-        } catch (e) {
-          // Ignore JSON parse error on error response
-        }
+        let errorMsg = "Failed to analyze";
+        try { const d = await res.json(); if (d.message) errorMsg = d.message; } catch {}
         throw new Error(errorMsg);
       }
-      
-      // Parse with the ANY schema defined in routes, but cast to our expected structure
-      const rawData = api.analyze.get.responses[200].parse(await res.json());
-      return rawData as RepoAnalysisData;
+      return res.json();
     },
     enabled: !!repoUrl,
-    retry: false, // Don't retry automatically as it might be a slow operation
+    retry: false,
+  });
+}
+
+export function useCompareRepos(urlA: string | null, urlB: string | null) {
+  return useQuery({
+    queryKey: [api.compare.get.path, urlA, urlB],
+    queryFn: async () => {
+      if (!urlA || !urlB) return null;
+      const res = await fetch(
+        `${api.compare.get.path}?urlA=${encodeURIComponent(urlA)}&urlB=${encodeURIComponent(urlB)}`,
+        { credentials: "include" }
+      );
+      if (!res.ok) {
+        let errorMsg = "Failed to compare repositories";
+        try { const d = await res.json(); if (d.message) errorMsg = d.message; } catch {}
+        throw new Error(errorMsg);
+      }
+      return res.json();
+    },
+    enabled: !!urlA && !!urlB,
+    retry: false,
   });
 }

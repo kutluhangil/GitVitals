@@ -1,0 +1,496 @@
+You are a senior full-stack engineer, product architect, and UI/UX designer.
+
+Your task is to design and build a modern developer analytics web application called **GitVitals**.
+
+GitVitals is a free developer tool that analyzes **GitHub repositories and GitHub developer profiles** and transforms GitHub data into clear insights, visual metrics, and health scores.
+
+The platform should feel like a professional SaaS developer tool similar to GitHub Insights, Vercel Analytics, or Linear.
+
+Focus on:
+
+- clean architecture
+- minimalist UI
+- developer-friendly experience
+- fast data analysis
+- visually rich insights
+
+--------------------------------------------------
+
+PRODUCT NAME
+
+GitVitals
+
+Tagline:
+
+"The health check for GitHub."
+
+Alternative tagline:
+
+"Understand repositories. Measure developers."
+
+--------------------------------------------------
+
+PRODUCT CORE PURPOSE
+
+GitVitals helps developers, recruiters, and teams quickly evaluate:
+
+• the health of a GitHub repository  
+• the activity of a project  
+• the productivity of a developer  
+• the technology stack used  
+• the risk level of a project  
+
+The platform converts GitHub data into **actionable insights and visual analytics.**
+
+--------------------------------------------------
+
+MAIN FEATURES
+
+GitVitals must include the following core features:
+
+1️⃣ Repo Analyzer  
+2️⃣ Profile Analyzer  
+3️⃣ Developer Score  
+4️⃣ Repo Risk Score  
+5️⃣ Tech Stack Detector  
+6️⃣ Repo Comparison  
+7️⃣ Shareable Developer Card  
+
+Each feature must integrate smoothly into the platform.
+
+--------------------------------------------------
+
+MAIN USER FLOW
+
+1. User opens the GitVitals website.
+2. User pastes either:
+   - a GitHub repository URL
+   - a GitHub profile URL
+   - a GitHub username
+3. User clicks "Analyze".
+4. A loading animation appears.
+5. The system fetches GitHub API data.
+6. Results appear gradually with animated sections.
+7. The user can export the report or share results.
+
+--------------------------------------------------
+
+LANDING PAGE DESIGN
+
+The landing page must be minimalist and modern.
+
+Hero section layout:
+
+Title:
+
+GitVitals
+
+Subtitle:
+
+Analyze GitHub repositories and developer profiles instantly.
+
+Input placeholder:
+
+Paste GitHub repository or profile URL
+
+Primary button:
+
+Analyze
+
+Include a subtle animated visual element:
+
+A glowing **heartbeat / pulse line animation** that moves across the screen and transforms into Git commit nodes and connections.
+
+The animation symbolizes repository activity and developer productivity.
+
+--------------------------------------------------
+
+UI DESIGN STYLE
+
+Dark theme developer UI.
+
+Color palette:
+
+Background
+#0f0f0f
+
+Card background
+#1a1a1a
+
+Primary accent
+#4f46e5
+
+Success
+#10b981
+
+Warning
+#f59e0b
+
+Danger
+#ef4444
+
+Text
+#ffffff
+#aaaaaa
+
+Design style:
+
+minimalist
+clean
+modern
+developer-focused
+
+Inspired by:
+
+GitHub  
+Vercel  
+Linear  
+Supabase
+
+--------------------------------------------------
+
+FEATURE 1 — REPOSITORY ANALYZER
+
+When analyzing a repository, show the following data.
+
+Repository Overview
+
+• repository name  
+• owner  
+• description  
+• creation date  
+• last updated date  
+• default branch  
+• license  
+• repository size  
+
+Activity Metrics
+
+• total commits  
+• commits in last 30 days  
+• commits in last 90 days  
+• average commits per month  
+• last commit date  
+
+Visualization:
+
+commit frequency chart
+
+--------------------------------------------------
+
+Contributors Analysis
+
+• total contributors  
+• top contributors  
+• contribution percentages  
+• contributor ranking  
+
+Estimate Bus Factor.
+
+Bus Factor = number of contributors responsible for most commits.
+
+--------------------------------------------------
+
+Language Distribution
+
+Example output:
+
+JavaScript 65%  
+TypeScript 20%  
+CSS 10%  
+HTML 5%
+
+Visualization:
+
+donut chart
+
+--------------------------------------------------
+
+Popularity Metrics
+
+• stars  
+• forks  
+• watchers  
+• open issues  
+• closed issues  
+• pull requests  
+
+--------------------------------------------------
+
+FEATURE 2 — PROFILE ANALYZER
+
+When analyzing a GitHub profile show:
+
+Profile Overview
+
+• username  
+• name  
+• bio  
+• followers  
+• following  
+• public repositories  
+• account creation date  
+
+--------------------------------------------------
+
+Contribution Activity
+
+• commits last year  
+• contribution streak  
+• active days per year  
+
+Visualization:
+
+GitHub-style contribution heatmap.
+
+--------------------------------------------------
+
+Repository Portfolio
+
+• total repositories  
+• most starred repository  
+• most forked repository  
+• average stars per repository  
+
+--------------------------------------------------
+
+Language Expertise
+
+Top languages across repositories.
+
+Example:
+
+JavaScript 48%  
+TypeScript 22%  
+Python 15%  
+Go 10%
+
+Visualization:
+
+language distribution chart.
+
+--------------------------------------------------
+
+FEATURE 3 — DEVELOPER SCORE
+
+Calculate a **Developer Score from 0 to 100**.
+
+Factors include:
+
+• total repositories  
+• total stars received  
+• contribution frequency  
+• consistency of commits  
+• open source collaboration  
+• number of contributors in repos  
+
+Score levels:
+
+90-100 → Elite Developer  
+75-89 → Advanced Developer  
+50-74 → Active Developer  
+25-49 → Beginner  
+0-24 → Inactive
+
+Display the score visually using a circular progress meter.
+
+Example:
+
+Developer Score: 84 / 100
+
+--------------------------------------------------
+
+FEATURE 4 — REPO RISK SCORE
+
+Estimate repository risk level.
+
+Risk factors:
+
+• last commit date  
+• low contributor count  
+• many open issues  
+• low PR merge rate  
+• inactive maintainers  
+
+Risk levels:
+
+Low Risk  
+Medium Risk  
+High Risk  
+
+Example output:
+
+Risk Level: Medium
+
+Warnings:
+
+⚠️ Low commit activity  
+⚠️ High open issue count  
+
+--------------------------------------------------
+
+FEATURE 5 — TECH STACK DETECTOR
+
+Automatically detect technologies used in the repository.
+
+Analyze configuration files:
+
+package.json  
+requirements.txt  
+go.mod  
+composer.json  
+pom.xml  
+
+Detected technologies example:
+
+React  
+Next.js  
+Node.js  
+TypeScript  
+Tailwind CSS  
+
+Display as technology badges.
+
+--------------------------------------------------
+
+FEATURE 6 — REPO COMPARISON
+
+Allow users to compare two repositories.
+
+Example input:
+
+repository A vs repository B
+
+Metrics comparison:
+
+• stars  
+• forks  
+• commits  
+• contributors  
+• activity frequency  
+• language distribution  
+
+Display comparison with side-by-side charts.
+
+--------------------------------------------------
+
+FEATURE 7 — SHAREABLE DEVELOPER CARD
+
+Generate a shareable developer card based on profile analysis.
+
+Card contains:
+
+• username  
+• developer score  
+• top languages  
+• total repositories  
+• total stars  
+
+Example card:
+
+Developer Score: 82  
+Top Language: TypeScript  
+Repositories: 42  
+Total Stars: 3.5k  
+
+The card should be downloadable as an image and shareable on:
+
+LinkedIn  
+Twitter  
+Portfolio sites
+
+--------------------------------------------------
+
+ANIMATIONS
+
+Include smooth UI animations:
+
+• section fade-in  
+• slide-up elements  
+• number counter animations  
+• animated charts  
+
+Example:
+
+Stars counter animation
+
+0 → 8,452
+
+--------------------------------------------------
+
+EXPORT FEATURES
+
+Allow exporting analysis results.
+
+Options:
+
+Export as PDF
+
+PDF must include:
+
+repository metrics  
+developer profile metrics  
+charts  
+scores  
+
+--------------------------------------------------
+
+EMAIL REPORT
+
+Allow users to send reports to their email.
+
+Email should include:
+
+PDF report  
+summary metrics  
+link to analysis page
+
+--------------------------------------------------
+
+TECHNOLOGY STACK
+
+Frontend
+
+React  
+TypeScript  
+Tailwind CSS  
+Framer Motion  
+Chart.js  
+
+Backend
+
+Node.js  
+Express  
+
+API
+
+GitHub REST API  
+GitHub GraphQL API  
+
+Deployment
+
+Vercel  
+Render
+
+--------------------------------------------------
+
+PERFORMANCE OPTIMIZATION
+
+GitHub API has rate limits.
+
+Implement caching.
+
+Cache analysis results for 10 minutes.
+
+Possible solutions:
+
+Redis  
+in-memory caching
+
+--------------------------------------------------
+
+FINAL GOAL
+
+Build a fast, elegant, and powerful developer analytics platform that converts GitHub data into meaningful insights about repositories and developers.
+
+GitVitals should feel like a professional developer intelligence platform.

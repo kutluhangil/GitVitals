@@ -13,7 +13,19 @@ export const api = {
       method: 'GET' as const,
       path: '/api/analyze' as const,
       responses: {
-        200: z.any(), // Analysis data (repo details, languages, commits, health score)
+        200: z.any(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+        429: z.object({ message: z.string() }),
+      }
+    }
+  },
+  compare: {
+    get: {
+      method: 'GET' as const,
+      path: '/api/compare' as const,
+      responses: {
+        200: z.any(),
         400: errorSchemas.validation,
         404: errorSchemas.notFound,
         429: z.object({ message: z.string() }),
