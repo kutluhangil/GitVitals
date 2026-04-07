@@ -327,19 +327,43 @@ app.get("/api/compare", async (req: Request, res: Response) => {
   try {
     const { urlA, urlB } = req.query;
     if (!urlA || !urlB || typeof urlA !== "string" || typeof urlB !== "string")
-      return res.status(400).json({ message: "Two GitHub repository URLs are required (urlA and urlB)" }) as any;
+      return res.status(400).json({ message: "Two GitHub URLs are required (urlA and urlB)" }) as any;
+
     const parsedA = parseGitHubUrl(urlA);
     const parsedB = parseGitHubUrl(urlB);
-    if (!parsedA || parsedA.type !== "repo" || !parsedA.repo) return res.status(400).json({ message: "urlA must be a valid GitHub repository URL" }) as any;
-    if (!parsedB || parsedB.type !== "repo" || !parsedB.repo) return res.status(400).json({ message: "urlB must be a valid GitHub repository URL" }) as any;
-    const [repoA, repoB] = await Promise.all([fetchGitHubData(parsedA.owner, parsedA.repo), fetchGitHubData(parsedB.owner, parsedB.repo)]);
-    res.json({ repoA, repoB });
+    if (!parsedA) return res.status(400).json({ message: "urlA is not a valid GitHub URL" }) as any;
+    if (!parsedB) return res.status(400).json({ message: "urlB is not a valid GitHub URL" }) as any;
+
+    // Both profiles → compare developers
+    if (parsedA.type === "profile" && parsedB.type === "profile") {
+      const [profileA, profileB] = await Promise.all([
+        fetchGitHubProfileData(parsedA.owner),
+        fetchGitHubProfileData(parsedB.owner),
+      ]);
+      return res.json({ type: "profiles", profileA, profileB }) as any;
+    }
+
+    // Both repos → compare repositories
+    if (parsedA.type === "repo" && parsedB.type === "repo" && parsedA.repo && parsedB.repo) {
+      const [repoA, repoB] = await Promise.all([
+        fetchGitHubData(parsedA.owner, parsedA.repo),
+        fetchGitHubData(parsedB.owner, parsedB.repo),
+      ]);
+      return res.json({ type: "repos", repoA, repoB }) as any;
+    }
+
+    // Mixed → error
+    return res.status(400).json({
+      message: "Please enter two GitHub profile URLs (e.g. github.com/user) or two repository URLs (e.g. github.com/user/repo). Mixing types is not supported."
+    }) as any;
+
   } catch (err: any) {
     if (err.message?.includes("rate limit")) return res.status(429).json({ message: "GitHub API rate limit exceeded." }) as any;
-    if (err.message?.includes("not found")) return res.status(404).json({ message: "One or both repositories not found." }) as any;
-    res.status(500).json({ message: err.message || "Failed to compare repositories" });
+    if (err.message?.includes("not found")) return res.status(404).json({ message: "One or both GitHub URLs were not found." }) as any;
+    res.status(500).json({ message: err.message || "Failed to compare" });
   }
 });
+
 
 app.post("/api/email", async (req: Request, res: Response) => {
   res.json({ success: true, message: "Report feature not available." });
