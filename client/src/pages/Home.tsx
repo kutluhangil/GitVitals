@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Sun, Moon, GitCompare, ArrowRight, BarChart3, User, GitMerge } from "lucide-react";
+import { Search, Sun, Moon, GitCompare, ArrowRight, BarChart3, User, GitMerge, Clock, Trash2 } from "lucide-react";
 import { GitAnimation } from "@/components/GitAnimation";
 import { Dashboard } from "@/components/Dashboard";
 import { CompareView } from "@/components/CompareView";
 import { useAnalyzeRepo, useCompareRepos } from "@/hooks/use-analyze";
 import { useToast } from "@/hooks/use-toast";
 import { useApp } from "@/context/AppContext";
+import { getHistory, addToHistory, clearHistory, type HistoryItem } from "@/hooks/use-history";
 
 const T = {
   en: {
@@ -86,7 +87,10 @@ export default function Home() {
   const [submittedUrl, setSubmittedUrl] = useState<string | null>(null);
   const [compareUrls, setCompareUrls] = useState<{ a: string; b: string } | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => { setHistory(getHistory()); }, []);
 
   const { data, isLoading, error } = useAnalyzeRepo(submittedUrl);
   const { data: compareData, isLoading: isComparing, error: compareError } = useCompareRepos(
@@ -109,6 +113,22 @@ export default function Home() {
   useEffect(() => {
     if (compareError) { toast({ title: "Comparison Failed", description: compareError.message, variant: "destructive" }); setCompareUrls(null); }
   }, [compareError, toast]);
+
+  // Save to history when analysis completes
+  useEffect(() => {
+    if (!data || isLoading) return;
+    const item: HistoryItem = {
+      url: submittedUrl!,
+      analyzedAt: Date.now(),
+      type: data.type === 'profile' ? 'profile' : 'repo',
+      name: data.type === 'profile'
+        ? `@${data.overview?.username}`
+        : `${data.overview?.owner}/${data.overview?.name}`,
+      avatarUrl: data.overview?.avatarUrl,
+    };
+    addToHistory(item);
+    setHistory(getHistory());
+  }, [data, isLoading, submittedUrl]);
 
   const handleAnalyze = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,6 +155,19 @@ export default function Home() {
     setInputUrl("");
     setUrlA("");
     setUrlB("");
+  };
+
+  const handleClearHistory = () => {
+    clearHistory();
+    setHistory([]);
+  };
+
+  const handleHistoryClick = (item: HistoryItem) => {
+    setInputUrl(item.url);
+    setSubmittedUrl(item.url);
+    setCompareUrls(null);
+    setMode("analyze");
+    setLoadingStep(0);
   };
 
   const switchMode = (m: "analyze" | "compare") => { setMode(m); reset(); };
@@ -264,6 +297,38 @@ export default function Home() {
                 className="py-4">
                 <GitAnimation />
               </motion.div>
+
+              {history.length > 0 && (
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.55 }} className="w-full max-w-2xl mx-auto mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" /> Recent Analyses
+                    </span>
+                    <button onClick={handleClearHistory}
+                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
+                      <Trash2 className="w-3 h-3" /> Clear
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {history.slice(0, 5).map((item) => (
+                      <button key={item.url} onClick={() => handleHistoryClick(item)}
+                        className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-border bg-card/50 hover:bg-card hover:border-foreground/20 transition-all text-left group">
+                        {item.avatarUrl ? (
+                          <img src={item.avatarUrl} alt={item.name} className="w-6 h-6 rounded-full flex-shrink-0" />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-secondary flex-shrink-0" />
+                        )}
+                        <span className="text-sm text-foreground font-medium flex-1 truncate">{item.name}</span>
+                        <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded capitalize flex-shrink-0">{item.type}</span>
+                        <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                          {new Date(item.analyzedAt).toLocaleDateString()}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
 
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }} className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-16">

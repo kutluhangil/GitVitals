@@ -5,12 +5,11 @@ import {
   PieChart, Pie, Cell, Legend, ResponsiveContainer, Tooltip
 } from "recharts";
 import {
-  Star, GitFork, BookOpen, Users, Download, Mail,
-  MapPin, Calendar, Building2, Link, ExternalLink, Trophy
+  Star, GitFork, BookOpen, Users, Download,
+  MapPin, Calendar, Building2, Link, ExternalLink, Trophy, Share2, Check
 } from "lucide-react";
 import { MetricCard } from "./MetricCard";
 import { DeveloperCard } from "./DeveloperCard";
-import { useSendEmailReport } from "@/hooks/use-email";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useToast } from "@/hooks/use-toast";
@@ -37,9 +36,8 @@ function getScoreColor(score: number) {
 
 export function ProfileDashboard({ data }: ProfileDashboardProps) {
   const { toast } = useToast();
-  const emailMutation = useSendEmailReport();
-  const [email, setEmail] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const score = data.developerScore?.score ?? 0;
   const level = data.developerScore?.level ?? "Developer";
@@ -66,15 +64,13 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
     }
   };
 
-  const handleEmailSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    emailMutation.mutate(
-      { email, repoUrl: `https://github.com/${data.overview.username}` },
-      {
-        onSuccess: () => { toast({ title: "Email Sent!" }); setEmail(""); },
-        onError: (err) => toast({ title: "Failed to send", description: err.message, variant: "destructive" }),
-      }
-    );
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}?url=${encodeURIComponent(data.overview.htmlUrl)}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      toast({ title: "Link copied!", description: "Share this link to show the analysis." });
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   return (
@@ -279,19 +275,21 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex-1">
               <h3 className="font-semibold font-display flex items-center gap-2 mb-2">
-                <Mail className="w-5 h-5 text-primary" />Receive Full Profile Report
+                <Share2 className="w-5 h-5 text-primary" />Share This Analysis
               </h3>
-              <p className="text-sm text-muted-foreground">Get a detailed PDF analysis sent to your inbox.</p>
+              <p className="text-sm text-muted-foreground">Copy a link to share this developer profile analysis with anyone.</p>
             </div>
-            <form onSubmit={handleEmailSend} className="flex-1 w-full flex flex-col sm:flex-row gap-3">
-              <input type="email" required placeholder="name@company.com" value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-xl bg-background border border-white/10 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all" />
-              <button type="submit" disabled={emailMutation.isPending}
-                className="px-6 py-3 rounded-xl font-semibold bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all disabled:opacity-50">
-                {emailMutation.isPending ? "Sending..." : "Send Report"}
+            <div className="flex gap-3 flex-shrink-0">
+              <button onClick={handleCopyLink}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl border border-white/10 bg-background hover:border-primary/30 text-sm font-medium transition-all">
+                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
+                {copied ? "Copied!" : "Copy Link"}
               </button>
-            </form>
+              <a href={data.overview.htmlUrl} target="_blank" rel="noreferrer"
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity">
+                <ExternalLink className="w-4 h-4" /> View on GitHub
+              </a>
+            </div>
           </div>
         </motion.div>
       </div>
