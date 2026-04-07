@@ -1,30 +1,348 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 import express from "express";
 import { createServer } from "http";
-import { registerRoutes } from "../server/routes";
+import { createServer as createHttpServer } from "http";
+import type { Request, Response, NextFunction } from "express";
+
+// --- Inline @shared/schema (avoid path alias issues) ---
 import { z } from "zod";
 
+export const emailRequestSchema = z.object({
+  email: z.string().email(),
+  repoUrl: z.string().url(),
+});
+
+// --- Inline storage (memory mode, no DB on Vercel) ---
+interface HistoryEntry {
+  id: number;
+  repoUrl: string;
+  owner: string;
+  name: string;
+  data: any;
+  createdAt: Date;
+}
+
+const cache = new Map<string, HistoryEntry>();
+let nextId = 1;
+
+const storage = {
+  async getAnalysisByUrl(repoUrl: string): Promise<HistoryEntry | undefined> {
+    return cache.get(repoUrl);
+  },
+  async createAnalysis(input: { repoUrl: string; owner: string; name: string; data: any }): Promise<HistoryEntry> {
+    const entry: HistoryEntry = { id: nextId++, createdAt: new Date(), ...input };
+    cache.set(input.repoUrl, entry);
+    return entry;
+  },
+};
+
+// --- GitHub helpers ---
+const GH_HEADERS: Record<string, string> = {
+  Accept: "application/vnd.github.v3+json",
+  "User-Agent": "GitVitals-App",
+  ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}),
+};
+
+function parseGitHubUrl(url: string): { type: "repo" | "profile"; owner: string; repo?: string } | null {
+  try {
+    let normalized = url.trim();
+    if (!normalized.startsWith("http")) normalized = "https://" + normalized;
+    const parsed = new URL(normalized);
+    if (parsed.hostname !== "github.com" && parsed.hostname !== "www.github.com") return null;
+    let pathname = parsed.pathname;
+    if (pathname.endsWith("/")) pathname = pathname.slice(0, -1);
+    const parts = pathname.split("/").filter(Boolean);
+    if (parts.length === 0) return null;
+    if (parts.length === 1) return { type: "profile", owner: parts[0] };
+    if (parts.length >= 2) return { type: "repo", owner: parts[0], repo: parts[1] };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function detectTechStack(languages: Record<string, number>, topics: string[]): string[] {
+  const stack: string[] = [];
+  const langMap: Record<string, string> = {
+    TypeScript: "TypeScript", JavaScript: "JavaScript", Python: "Python",
+    Rust: "Rust", Go: "Go", Java: "Java", "C#": "C#", PHP: "PHP",
+    Ruby: "Ruby", Kotlin: "Kotlin", Swift: "Swift", Dart: "Dart",
+    "C++": "C++", C: "C", Scala: "Scala", Elixir: "Elixir",
+    Haskell: "Haskell", Shell: "Shell", HTML: "HTML", CSS: "CSS",
+  };
+  const topicMap: Record<string, string> = {
+    react: "React", reactjs: "React", "react-native": "React Native",
+    nextjs: "Next.js", "next-js": "Next.js", vue: "Vue.js", vuejs: "Vue.js",
+    angular: "Angular", svelte: "Svelte", astro: "Astro",
+    nodejs: "Node.js", "node-js": "Node.js", node: "Node.js",
+    express: "Express", fastify: "Fastify", nestjs: "NestJS",
+    fastapi: "FastAPI", django: "Django", flask: "Flask",
+    tailwindcss: "Tailwind CSS", tailwind: "Tailwind CSS",
+    docker: "Docker", kubernetes: "Kubernetes",
+    postgresql: "PostgreSQL", postgres: "PostgreSQL", mysql: "MySQL",
+    mongodb: "MongoDB", redis: "Redis", sqlite: "SQLite",
+    graphql: "GraphQL", prisma: "Prisma", drizzle: "DrizzleORM",
+    trpc: "tRPC", vite: "Vite", webpack: "Webpack",
+    pytorch: "PyTorch", tensorflow: "TensorFlow",
+    spring: "Spring", laravel: "Laravel", rails: "Rails",
+  };
+  for (const lang of Object.keys(languages)) {
+    const name = langMap[lang];
+    if (name && !stack.includes(name)) stack.push(name);
+  }
+  for (const topic of topics) {
+    const name = topicMap[topic.toLowerCase()];
+    if (name && !stack.includes(name)) stack.push(name);
+  }
+  return stack.slice(0, 12);
+}
+
+function calculateRiskScore(repoInfo: any, commits: any[], contributors: any[]) {
+  let riskScore = 0;
+  const warnings: string[] = [];
+  const lastCommitDate = commits[0]?.commit?.author?.date;
+  if (lastCommitDate) {
+    const daysSince = (Date.now() - new Date(lastCommitDate).getTime()) / 86400000;
+    if (daysSince > 365) { riskScore += 35; warnings.push("No commits in over a year"); }
+    else if (daysSince > 180) { riskScore += 20; warnings.push("No commits in 6+ months"); }
+    else if (daysSince > 90) { riskScore += 10; warnings.push("Low commit activity (90+ days since last commit)"); }
+  } else { riskScore += 20; warnings.push("Unable to determine last commit date"); }
+  if (contributors.length === 1) { riskScore += 25; warnings.push("Single contributor — extreme bus factor risk"); }
+  else if (contributors.length < 3) { riskScore += 12; warnings.push("Very few contributors"); }
+  const openIssues = repoInfo.open_issues_count || 0;
+  if (openIssues > 1000) { riskScore += 20; warnings.push("Extremely high open issue count"); }
+  else if (openIssues > 200) { riskScore += 10; warnings.push("High open issue count"); }
+  if (!repoInfo.license) { riskScore += 10; warnings.push("No license found"); }
+  if (commits.length < 10) { riskScore += 10; warnings.push("Very few commits in history"); }
+  const totalScore = Math.min(100, riskScore);
+  let riskLevel = "Low Risk";
+  if (totalScore >= 50) riskLevel = "High Risk";
+  else if (totalScore >= 25) riskLevel = "Medium Risk";
+  return { riskScore: totalScore, riskLevel, warnings };
+}
+
+function calculateDeveloperScore(userInfo: any, repos: any[]): { score: number; level: string } {
+  let score = 0;
+  score += Math.min(15, ((userInfo.public_repos || 0) / 50) * 15);
+  const totalStars = repos.reduce((s: number, r: any) => s + (r.stargazers_count || 0), 0);
+  score += Math.min(25, (totalStars / 500) * 25);
+  score += Math.min(15, ((userInfo.followers || 0) / 200) * 15);
+  const years = (Date.now() - new Date(userInfo.created_at).getTime()) / (1000 * 60 * 60 * 24 * 365);
+  score += Math.min(10, (years / 5) * 10);
+  const originalRepos = repos.filter((r: any) => !r.fork);
+  score += Math.min(10, (originalRepos.length / 30) * 10);
+  if (repos.some((r: any) => r.forks_count > 10 || r.stargazers_count > 50)) score += 15;
+  else if (repos.some((r: any) => r.forks_count > 0)) score += 7;
+  if (totalStars > 1000) score += 10;
+  else if (totalStars > 100) score += 5;
+  const finalScore = Math.min(100, Math.round(score));
+  let level = "Inactive";
+  if (finalScore >= 90) level = "Elite Developer";
+  else if (finalScore >= 75) level = "Advanced Developer";
+  else if (finalScore >= 50) level = "Active Developer";
+  else if (finalScore >= 25) level = "Beginner";
+  return { score: finalScore, level };
+}
+
+async function fetchGitHubProfileData(username: string) {
+  const fetchJson = async (url: string) => {
+    const res = await fetch(url, { headers: GH_HEADERS });
+    if (!res.ok) {
+      if (res.status === 404) throw new Error("GitHub profile not found");
+      if (res.status === 403 || res.status === 429) throw new Error("GitHub API rate limit exceeded");
+      throw new Error(`GitHub API error: ${res.statusText}`);
+    }
+    return res.json();
+  };
+  const userInfo = await fetchJson(`https://api.github.com/users/${username}`);
+  const repos = await fetchJson(`https://api.github.com/users/${username}/repos?sort=stars&per_page=100`);
+  const languageCounts: Record<string, number> = {};
+  for (const repo of repos) {
+    if (repo.language) languageCounts[repo.language] = (languageCounts[repo.language] || 0) + 1;
+  }
+  const totalLangCount = Object.values(languageCounts).reduce((a, b) => a + b, 0);
+  const languageExpertise = Object.entries(languageCounts)
+    .map(([name, count]) => ({ name, percentage: totalLangCount > 0 ? Math.round((count / totalLangCount) * 100) : 0 }))
+    .sort((a, b) => b.percentage - a.percentage).slice(0, 6);
+  const totalStars = repos.reduce((s: number, r: any) => s + (r.stargazers_count || 0), 0);
+  const totalForks = repos.reduce((s: number, r: any) => s + (r.forks_count || 0), 0);
+  const avgStars = repos.length > 0 ? Math.round(totalStars / repos.length) : 0;
+  const mostStarred = repos.reduce((best: any, r: any) => (!best || r.stargazers_count > best.stargazers_count ? r : best), null);
+  const mostForked = repos.reduce((best: any, r: any) => (!best || r.forks_count > best.forks_count ? r : best), null);
+  const developerScore = calculateDeveloperScore(userInfo, repos);
+  return {
+    type: "profile",
+    overview: {
+      username: userInfo.login, name: userInfo.name || userInfo.login, bio: userInfo.bio,
+      followers: userInfo.followers, following: userInfo.following,
+      publicRepos: userInfo.public_repos, avatarUrl: userInfo.avatar_url,
+      location: userInfo.location, company: userInfo.company, blog: userInfo.blog,
+      createdAt: userInfo.created_at, htmlUrl: userInfo.html_url,
+    },
+    topRepos: repos.slice(0, 6).map((r: any) => ({
+      name: r.name, stars: r.stargazers_count, forks: r.forks_count,
+      description: r.description, language: r.language, url: r.html_url,
+    })),
+    languageExpertise,
+    portfolio: {
+      totalStars, totalForks, avgStars,
+      mostStarred: mostStarred ? { name: mostStarred.name, stars: mostStarred.stargazers_count } : null,
+      mostForked: mostForked ? { name: mostForked.name, forks: mostForked.forks_count } : null,
+      originalRepos: repos.filter((r: any) => !r.fork).length,
+    },
+    stats: { totalStars, totalForks },
+    developerScore,
+  };
+}
+
+async function fetchGitHubData(owner: string, repo: string) {
+  const fetchJson = async (endpoint: string) => {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}${endpoint}`, { headers: GH_HEADERS });
+    if (!res.ok) {
+      if (res.status === 404) throw new Error("Repository not found or is private");
+      if (res.status === 403 || res.status === 429) throw new Error("GitHub API rate limit exceeded");
+      throw new Error(`GitHub API error: ${res.statusText}`);
+    }
+    return res.json();
+  };
+  const [repoInfo, languages, commits, contributors] = await Promise.all([
+    fetchJson(""),
+    fetchJson("/languages"),
+    fetchJson("/commits?per_page=100").catch(() => []),
+    fetchJson("/contributors?per_page=100").catch(() => []),
+  ]);
+  const topics: string[] = repoInfo.topics || [];
+  const totalContributors = contributors.length;
+  let busFactor = 0;
+  if (totalContributors > 0) {
+    const totalContributions = contributors.reduce((s: number, c: any) => s + c.contributions, 0);
+    let cumulative = 0;
+    for (const c of contributors) {
+      cumulative += c.contributions;
+      busFactor++;
+      if (cumulative >= totalContributions * 0.5) break;
+    }
+  }
+  let healthScore = 50;
+  if (repoInfo.has_issues) healthScore += 5;
+  if (repoInfo.license) healthScore += 10;
+  if (commits.length > 50) healthScore += 10;
+  if (totalContributors > 5) healthScore += 10;
+  if (repoInfo.stargazers_count > 100) healthScore += 10;
+  if (repoInfo.description) healthScore += 5;
+  if (topics.length > 0) healthScore += 5;
+  if (repoInfo.has_wiki) healthScore += 5;
+  healthScore = Math.min(100, Math.max(0, healthScore));
+  let healthStatus = "Inactive";
+  if (healthScore >= 90) healthStatus = "Excellent";
+  else if (healthScore >= 75) healthStatus = "Healthy";
+  else if (healthScore >= 50) healthStatus = "Moderate";
+  else if (healthScore >= 30) healthStatus = "Risky";
+  const totalBytes = Object.values(languages).reduce((a: any, b: any) => a + b, 0) as number;
+  const languageStats = Object.entries(languages)
+    .map(([lang, bytes]) => ({ name: lang, percentage: totalBytes > 0 ? Math.round(((bytes as number) / totalBytes) * 100) : 0 }))
+    .sort((a, b) => b.percentage - a.percentage).slice(0, 6);
+  const now = Date.now();
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const weekBuckets: Record<number, number> = {};
+  for (let i = 11; i >= 0; i--) weekBuckets[i] = 0;
+  for (const commit of commits) {
+    const date = new Date(commit.commit?.author?.date || 0).getTime();
+    const weeksAgo = Math.floor((now - date) / weekMs);
+    if (weeksAgo >= 0 && weeksAgo < 12) weekBuckets[11 - weeksAgo] = (weekBuckets[11 - weeksAgo] || 0) + 1;
+  }
+  const commitsTrend = Object.entries(weekBuckets).map(([week, count]) => ({ date: `W${parseInt(week) + 1}`, count }));
+  const risk = calculateRiskScore(repoInfo, commits, contributors);
+  const techStack = detectTechStack(languages, topics);
+  return {
+    type: "repo",
+    overview: {
+      name: repoInfo.name, owner: repoInfo.owner.login, avatarUrl: repoInfo.owner.avatar_url,
+      htmlUrl: repoInfo.html_url, description: repoInfo.description,
+      createdAt: repoInfo.created_at, lastUpdated: repoInfo.updated_at,
+      defaultBranch: repoInfo.default_branch, license: repoInfo.license?.name || "None",
+      size: repoInfo.size, visibility: repoInfo.visibility, topics,
+    },
+    metrics: { totalCommits: commits.length === 100 ? "100+" : commits.length, lastCommitDate: commits[0]?.commit?.author?.date || null },
+    contributors: {
+      total: totalContributors,
+      top: contributors.slice(0, 5).map((c: any) => ({
+        login: c.login, avatar_url: c.avatar_url, contributions: c.contributions, htmlUrl: `https://github.com/${c.login}`,
+      })),
+      busFactor,
+    },
+    languages: languageStats,
+    activity: { commitsTrend },
+    popularity: { stars: repoInfo.stargazers_count, forks: repoInfo.forks_count, watchers: repoInfo.subscribers_count, openIssues: repoInfo.open_issues_count },
+    health: { score: healthScore, status: healthStatus },
+    risk,
+    techStack,
+  };
+}
+
+// --- Express app ---
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-let routesRegistered = false;
+// CORS for Vercel
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") { res.status(200).end(); return; }
+  next();
+});
 
-async function ensureRoutes() {
-  if (!routesRegistered) {
-    const httpServer = createServer(app);
-    await registerRoutes(httpServer, app);
-    routesRegistered = true;
+app.get("/api/analyze", async (req: Request, res: Response) => {
+  try {
+    const inputUrl = req.query.url;
+    if (!inputUrl || typeof inputUrl !== "string") return res.status(400).json({ message: "GitHub URL is required" }) as any;
+    const parsedInfo = parseGitHubUrl(inputUrl);
+    if (!parsedInfo) return res.status(400).json({ message: "Invalid GitHub URL." }) as any;
+    const existing = await storage.getAnalysisByUrl(inputUrl);
+    if (existing) {
+      const ageInHours = (Date.now() - new Date(existing.createdAt).getTime()) / 3600000;
+      if (ageInHours < 1) return res.json(existing.data) as any;
+    }
+    let analysisData: any;
+    if (parsedInfo.type === "repo" && parsedInfo.repo) {
+      analysisData = await fetchGitHubData(parsedInfo.owner, parsedInfo.repo);
+    } else if (parsedInfo.type === "profile") {
+      analysisData = await fetchGitHubProfileData(parsedInfo.owner);
+    } else {
+      return res.status(400).json({ message: "Unable to determine analysis type" }) as any;
+    }
+    try {
+      if (!existing) await storage.createAnalysis({ repoUrl: inputUrl, owner: parsedInfo.owner, name: parsedInfo.repo || "profile", data: analysisData });
+    } catch {}
+    res.json(analysisData);
+  } catch (err: any) {
+    if (err.message?.includes("rate limit")) return res.status(429).json({ message: "GitHub API rate limit exceeded. Please try again later." }) as any;
+    if (err.message?.includes("not found") || err.message?.includes("404")) return res.status(404).json({ message: "Repository or profile not found." }) as any;
+    res.status(500).json({ message: err.message || "Failed to analyze" });
   }
-}
+});
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  await ensureRoutes();
+app.get("/api/compare", async (req: Request, res: Response) => {
+  try {
+    const { urlA, urlB } = req.query;
+    if (!urlA || !urlB || typeof urlA !== "string" || typeof urlB !== "string")
+      return res.status(400).json({ message: "Two GitHub repository URLs are required (urlA and urlB)" }) as any;
+    const parsedA = parseGitHubUrl(urlA);
+    const parsedB = parseGitHubUrl(urlB);
+    if (!parsedA || parsedA.type !== "repo" || !parsedA.repo) return res.status(400).json({ message: "urlA must be a valid GitHub repository URL" }) as any;
+    if (!parsedB || parsedB.type !== "repo" || !parsedB.repo) return res.status(400).json({ message: "urlB must be a valid GitHub repository URL" }) as any;
+    const [repoA, repoB] = await Promise.all([fetchGitHubData(parsedA.owner, parsedA.repo), fetchGitHubData(parsedB.owner, parsedB.repo)]);
+    res.json({ repoA, repoB });
+  } catch (err: any) {
+    if (err.message?.includes("rate limit")) return res.status(429).json({ message: "GitHub API rate limit exceeded." }) as any;
+    if (err.message?.includes("not found")) return res.status(404).json({ message: "One or both repositories not found." }) as any;
+    res.status(500).json({ message: err.message || "Failed to compare repositories" });
+  }
+});
 
-  return new Promise<void>((resolve, reject) => {
-    // @ts-ignore
-    app(req, res);
-    res.on("finish", resolve);
-    res.on("error", reject);
-  });
-}
+app.post("/api/email", async (req: Request, res: Response) => {
+  res.json({ success: true, message: "Report feature not available." });
+});
+
+export default app;
