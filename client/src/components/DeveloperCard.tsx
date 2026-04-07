@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Share2, Layers, Sparkles, Minimize2, ImageDown } from "lucide-react";
+import { Download, Share2, Layers, Sparkles, Minimize2, ImageDown, Github, Copy, Check as CheckIcon, LayoutTemplate, RectangleHorizontal } from "lucide-react";
 import html2canvas from "html2canvas";
 import { GIFEncoder, quantize, applyPalette } from "gifenc";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +34,8 @@ const T = {
     detailed: "Detailed",
     premium: "Premium",
     minimal: "Minimal",
+    portrait: "Portrait",
+    banner: "Banner",
     repos: "REPOS",
     stars: "STARS",
     followers: "FOLLOWERS",
@@ -44,6 +46,17 @@ const T = {
     topRepos: "TOP REPOS",
     score: "DEVELOPER SCORE",
     generating: "Generating GIF…",
+    addToGithub: "Add to GitHub Profile",
+    addToGithubDesc: "Embed a live card that auto-updates every hour directly in your GitHub profile README.",
+    step1: "1. Create or open your profile repository",
+    step1Desc: "GitHub shows a special README if you create a repo named exactly like your username.",
+    step2: "2. Copy and paste this into your README.md",
+    step3: "3. Commit, push — and you're live! 🎉",
+    orBanner: "Or use the wide banner version:",
+    copyMd: "Copy Markdown",
+    copiedMd: "Copied!",
+    previewCard: "Preview live card",
+    orientation: "Orientation",
   },
   tr: {
     title: "Paylaşılabilir Geliştirici Kartı",
@@ -53,6 +66,8 @@ const T = {
     detailed: "Detaylı",
     premium: "Premium",
     minimal: "Minimalist",
+    portrait: "Dikey",
+    banner: "Banner",
     repos: "REPO",
     stars: "YILDIZ",
     followers: "TAKİPÇİ",
@@ -63,28 +78,40 @@ const T = {
     topRepos: "EN İYİ REPOLAR",
     score: "GELİŞTİRİCİ SKORU",
     generating: "GIF oluşturuluyor…",
+    addToGithub: "GitHub Profiline Ekle",
+    addToGithubDesc: "GitHub profil README'ne canlı kart ekle — her saat otomatik güncellenir.",
+    step1: "1. Profil deposunu oluştur veya aç",
+    step1Desc: "GitHub, kullanıcı adınla aynı isimde bir repo oluşturursan özel README gösterir.",
+    step2: "2. Bu kodu README.md'ye yapıştır",
+    step3: "3. Commit, push — ve yayındasın! 🎉",
+    orBanner: "Ya da geniş banner versiyonunu kullan:",
+    copyMd: "Markdown Kopyala",
+    copiedMd: "Kopyalandı!",
+    previewCard: "Canlı kartı önizle",
+    orientation: "Yön",
   },
 };
 
 // ─────────────────────────────────────────────
 // CARD 1 · DETAILED
 // ─────────────────────────────────────────────
-function DetailedCard({ data, t }: { data: any; t: typeof T.en }) {
+function DetailedCard({ data, t, wide }: { data: any; t: typeof T.en; wide?: boolean }) {
   const score = data.developerScore?.score ?? 0;
   const level = data.developerScore?.level ?? "";
   const sc = scoreColor(score);
   const circ = 2 * Math.PI * 36;
   const offset = circ - (score / 100) * circ;
-  const langs = (data.languageExpertise || []).slice(0, 4);
+  const langs = (data.languageExpertise || []).slice(0, wide ? 3 : 4);
   const repos = (data.topRepos || []).slice(0, 2);
   const since = data.overview?.createdAt
     ? new Date(data.overview.createdAt).getFullYear()
     : "—";
+  const W = wide ? 680 : 420;
 
   return (
     <div
       style={{
-        width: 420,
+        width: W,
         background: "linear-gradient(135deg,#0d1117 0%,#161b22 60%,#0d1117 100%)",
         border: "1px solid #30363d",
         borderRadius: 16,
@@ -194,17 +221,18 @@ function DetailedCard({ data, t }: { data: any; t: typeof T.en }) {
 // ─────────────────────────────────────────────
 // CARD 2 · PREMIUM (glassmorphism + mesh)
 // ─────────────────────────────────────────────
-function PremiumCard({ data, t }: { data: any; t: typeof T.en }) {
+function PremiumCard({ data, t, wide }: { data: any; t: typeof T.en; wide?: boolean }) {
   const score = data.developerScore?.score ?? 0;
   const level = data.developerScore?.level ?? "";
   const sc = scoreColor(score);
   const circ = 2 * Math.PI * 50;
   const offset = circ - (score / 100) * circ;
   const langs = (data.languageExpertise || []).slice(0, 5);
+  const W = wide ? 680 : 420;
 
   return (
     <div style={{
-      width: 420,
+      width: W,
       borderRadius: 20,
       padding: 2,
       background: `linear-gradient(135deg, ${sc}60, #6366f160, #ec489960)`,
@@ -311,15 +339,16 @@ function PremiumCard({ data, t }: { data: any; t: typeof T.en }) {
 // ─────────────────────────────────────────────
 // CARD 3 · MINIMAL
 // ─────────────────────────────────────────────
-function MinimalCard({ data, t }: { data: any; t: typeof T.en }) {
+function MinimalCard({ data, t, wide }: { data: any; t: typeof T.en; wide?: boolean }) {
   const score = data.developerScore?.score ?? 0;
   const level = data.developerScore?.level ?? "";
   const sc = scoreColor(score);
+  const W = wide ? 640 : 360;
   const langs = (data.languageExpertise || []).slice(0, 5);
 
   return (
     <div style={{
-      width: 360,
+      width: W,
       background: "#ffffff",
       borderRadius: 14,
       padding: "22px 24px",
@@ -394,6 +423,7 @@ function MinimalCard({ data, t }: { data: any; t: typeof T.en }) {
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 type Variant = "detailed" | "premium" | "minimal";
+type Orientation = "portrait" | "banner";
 
 const VARIANTS: Variant[] = ["detailed", "premium", "minimal"];
 const VARIANT_ICONS = {
@@ -408,7 +438,17 @@ export function DeveloperCard({ data }: DeveloperCardProps) {
   const { toast } = useToast();
   const cardRef = useRef<HTMLDivElement>(null);
   const [variant, setVariant] = useState<Variant>("premium");
+  const [orientation, setOrientation] = useState<Orientation>("portrait");
   const [generatingGif, setGeneratingGif] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [copiedMd, setCopiedMd] = useState(false);
+  const username = data.overview?.username || "";
+
+  const BASE_URL = typeof window !== "undefined" ? window.location.origin : "https://gitvitals.vercel.app";
+  const portraitUrl = `${BASE_URL}/api/card?user=${username}&orientation=portrait`;
+  const bannerUrl   = `${BASE_URL}/api/card?user=${username}&orientation=banner`;
+  const portraitMd  = `[![GitVitals Dev Card](${portraitUrl})](${BASE_URL}?url=https://github.com/${username})`;
+  const bannerMd    = `[![GitVitals Banner](${bannerUrl})](${BASE_URL}?url=https://github.com/${username})`;
 
   const getCardEl = () => cardRef.current?.querySelector("[data-card]") as HTMLElement | null;
 
@@ -472,8 +512,8 @@ export function DeveloperCard({ data }: DeveloperCardProps) {
       }
       gif.finish();
 
-      const bytes = gif.bytesView();
-      const blob  = new Blob([bytes], { type: "image/gif" });
+      const bytes  = gif.bytesView();
+      const blob  = new Blob([bytes.buffer as ArrayBuffer], { type: "image/gif" });
       const url   = URL.createObjectURL(blob);
       const link  = document.createElement("a");
       link.download = `${data.overview.username}-gitvitals-${variant}.gif`;
@@ -523,6 +563,21 @@ export function DeveloperCard({ data }: DeveloperCardProps) {
               </button>
             ))}
           </div>
+          {/* Orientation Toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-white/10">
+            <button onClick={() => setOrientation("portrait")}
+              title={t.portrait}
+              className={`px-2.5 py-1.5 text-xs font-medium flex items-center gap-1 transition-colors
+                ${orientation === "portrait" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+              <LayoutTemplate className="w-3.5 h-3.5" />{t.portrait}
+            </button>
+            <button onClick={() => setOrientation("banner")}
+              title={t.banner}
+              className={`px-2.5 py-1.5 text-xs font-medium flex items-center gap-1 transition-colors
+                ${orientation === "banner" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+              <RectangleHorizontal className="w-3.5 h-3.5" />{t.banner}
+            </button>
+          </div>
           <button onClick={handleShare}
             className="px-3 py-1.5 rounded-lg bg-card border border-white/10 hover:border-primary/30 text-xs font-medium flex items-center gap-1.5 text-muted-foreground hover:text-white transition-all">
             <Share2 className="w-3.5 h-3.5" />{t.share}
@@ -540,26 +595,114 @@ export function DeveloperCard({ data }: DeveloperCardProps) {
       </div>
 
       {/* Card Preview */}
-      <div className="flex justify-center" ref={cardRef}>
+      <div className={`flex justify-center overflow-x-auto pb-2 ${orientation === "banner" ? "" : ""}`} ref={cardRef}>
         <AnimatePresence mode="wait">
-          <motion.div key={variant}
+          <motion.div key={`${variant}-${orientation}`}
             initial={{ opacity:0, y:8, scale:0.97 }}
             animate={{ opacity:1, y:0,  scale:1 }}
             exit={{    opacity:0, y:-8, scale:0.97 }}
             transition={{ duration:0.25 }}
-            data-card>
-            {variant === "detailed" && <DetailedCard data={data} t={t} />}
-            {variant === "premium"  && <PremiumCard  data={data} t={t} />}
-            {variant === "minimal"  && <MinimalCard  data={data} t={t} />}
+            data-card
+            style={orientation === "banner" ? { transform: "scale(0.85)", transformOrigin: "top center" } : {}}>
+            {variant === "detailed" && <DetailedCard data={data} t={t} wide={orientation === "banner"} />}
+            {variant === "premium"  && <PremiumCard  data={data} t={t} wide={orientation === "banner"} />}
+            {variant === "minimal"  && <MinimalCard  data={data} t={t} wide={orientation === "banner"} />}
           </motion.div>
         </AnimatePresence>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground/50 mt-4">
+      <p className="text-center text-xs text-muted-foreground/50 mt-2">
         {variant === "detailed" && (lang === "tr" ? "Detaylı veri görünümü — tüm istatistikler ve dil analizi" : "Information-rich view with all stats, languages & top repos")}
         {variant === "premium"  && (lang === "tr" ? "Premium glassmorphism tasarım — GitHub README için ideal" : "Premium glassmorphism design — ideal for your GitHub README")}
         {variant === "minimal"  && (lang === "tr" ? "Minimalist temiz tasarım — her yere uyan" : "Clean minimalist design — works everywhere")}
       </p>
+
+      {/* ── GitHub Profile Guide ── */}
+      <div className="mt-6 border-t border-border/50 pt-6">
+        <button onClick={() => setShowGuide(g => !g)}
+          className="flex items-center gap-2 w-full text-left group">
+          <Github className="w-5 h-5 text-foreground/60 group-hover:text-foreground transition-colors" />
+          <div className="flex-1">
+            <span className="text-sm font-semibold group-hover:text-foreground transition-colors">{t.addToGithub}</span>
+            <p className="text-xs text-muted-foreground mt-0.5">{t.addToGithubDesc}</p>
+          </div>
+          <motion.span animate={{ rotate: showGuide ? 180 : 0 }} className="text-muted-foreground text-xs">▼</motion.span>
+        </button>
+
+        <AnimatePresence>
+          {showGuide && (
+            <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:"auto" }} exit={{ opacity:0, height:0 }}
+              className="overflow-hidden">
+              <div className="pt-5 space-y-5">
+
+                {/* Step 1 */}
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</div>
+                  <div>
+                    <p className="text-sm font-semibold mb-1">{t.step1}</p>
+                    <p className="text-xs text-muted-foreground">{t.step1Desc}</p>
+                    <a href={`https://github.com/new`} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-2 text-xs text-primary hover:underline">
+                      <Github className="w-3 h-3" /> github.com/new
+                    </a>
+                  </div>
+                </div>
+
+                {/* Step 2 - Portrait */}
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold mb-2">{t.step2}</p>
+                    {/* Portrait code */}
+                    <div className="relative">
+                      <pre className="p-3 rounded-xl bg-background border border-border text-xs font-mono text-muted-foreground overflow-x-auto whitespace-pre-wrap break-all">{portraitMd}</pre>
+                      <button onClick={() => { navigator.clipboard.writeText(portraitMd); setCopiedMd(true); setTimeout(() => setCopiedMd(false), 2000); }}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-card border border-border hover:border-primary/30 transition-all">
+                        {copiedMd ? <CheckIcon className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
+                      </button>
+                    </div>
+                    {/* Banner code */}
+                    <p className="text-xs text-muted-foreground mt-3 mb-1.5">{t.orBanner}</p>
+                    <div className="relative">
+                      <pre className="p-3 rounded-xl bg-background border border-border text-xs font-mono text-muted-foreground overflow-x-auto whitespace-pre-wrap break-all">{bannerMd}</pre>
+                      <button onClick={() => { navigator.clipboard.writeText(bannerMd); setCopiedMd(true); setTimeout(() => setCopiedMd(false), 2000); }}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-card border border-border hover:border-primary/30 transition-all">
+                        {copiedMd ? <CheckIcon className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</div>
+                  <div>
+                    <p className="text-sm font-semibold">{t.step3}</p>
+                    <a href={`https://github.com/${username}`} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-1 text-xs text-primary hover:underline">
+                      <Github className="w-3 h-3" /> github.com/{username}
+                    </a>
+                  </div>
+                </div>
+
+                {/* Live preview links */}
+                <div className="flex flex-wrap gap-2 pt-1 border-t border-border/30">
+                  <a href={portraitUrl} target="_blank" rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border hover:border-primary/30 text-xs text-muted-foreground hover:text-foreground transition-all">
+                    <LayoutTemplate className="w-3 h-3" /> {t.previewCard} (portrait)
+                  </a>
+                  <a href={bannerUrl} target="_blank" rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border hover:border-primary/30 text-xs text-muted-foreground hover:text-foreground transition-all">
+                    <RectangleHorizontal className="w-3 h-3" /> {t.previewCard} (banner)
+                  </a>
+                </div>
+
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
     </motion.div>
   );
 }
