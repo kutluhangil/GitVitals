@@ -8,6 +8,7 @@ import { useAnalyzeRepo, useCompareRepos } from "@/hooks/use-analyze";
 import { useToast } from "@/hooks/use-toast";
 import { useApp } from "@/context/AppContext";
 import { getHistory, addToHistory, clearHistory, type HistoryItem } from "@/hooks/use-history";
+import { Footer } from "@/components/Footer";
 
 const T = {
   en: {
@@ -420,6 +421,7 @@ export default function Home() {
         </AnimatePresence>
 
       </main>
+      <Footer />
     </div>
   );
 }

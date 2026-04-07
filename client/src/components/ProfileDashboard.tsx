@@ -2,11 +2,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import CountUp from "react-countup";
 import {
-  PieChart, Pie, Cell, Legend, ResponsiveContainer, Tooltip
-} from "recharts";
-import {
   Star, GitFork, BookOpen, Users, Download,
-  MapPin, Calendar, Building2, Link, ExternalLink, Trophy, Share2, Check
+  MapPin, Calendar, Building2, Link, ExternalLink, Trophy,
+  Share2, Check, TrendingUp, Lightbulb, Award, Code2
 } from "lucide-react";
 import { MetricCard } from "./MetricCard";
 import { DeveloperCard } from "./DeveloperCard";
@@ -24,7 +22,7 @@ const LANG_COLORS: Record<string, string> = {
   Ruby: "#701516", PHP: "#4F5D95", Swift: "#ffac45", Kotlin: "#A97BFF",
   Dart: "#00b4ab", CSS: "#563d7c", HTML: "#e34c26",
 };
-const CHART_COLORS = ["hsl(var(--primary))", "hsl(var(--success))", "hsl(280,75%,60%)", "hsl(190,90%,50%)", "hsl(330,80%,60%)", "hsl(45,90%,55%)"];
+const FALLBACK_COLORS = ["#6366f1","#10b981","#f59e0b","#ec4899","#8b5cf6","#06b6d4"];
 
 function getScoreColor(score: number) {
   if (score >= 90) return "#10b981";
@@ -34,16 +32,79 @@ function getScoreColor(score: number) {
   return "#6b7280";
 }
 
+function getMemberYears(createdAt: string): string {
+  const years = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24 * 365);
+  if (years < 1) return "< 1 year on GitHub";
+  return `${Math.floor(years)}+ year${Math.floor(years) > 1 ? "s" : ""} on GitHub`;
+}
+
+function getScoreBreakdown(data: any) {
+  const repoCount   = data.overview?.publicRepos || 0;
+  const totalStars  = data.portfolio?.totalStars  || 0;
+  const totalForks  = data.portfolio?.totalForks  || 0;
+  const followers   = data.overview?.followers    || 0;
+  const years       = (Date.now() - new Date(data.overview?.createdAt || 0).getTime()) / (1000 * 60 * 60 * 24 * 365);
+  const origRepos   = data.portfolio?.originalRepos || 0;
+
+  const starsScore    = Math.min(25, (totalStars  / 500) * 25);
+  const followScore   = Math.min(15, (followers   / 200) * 15);
+  const reposScore    = Math.min(15, (repoCount   / 50)  * 15);
+  const ageScore      = Math.min(10, (years       / 5)   * 10);
+  const origScore     = Math.min(10, (origRepos   / 30)  * 10);
+  const communityScore =
+    (totalStars > 1000 || totalForks > 50) ? 15 :
+    (totalForks > 0 || totalStars > 0)     ? 7  : 0;
+  const bonusScore    = totalStars > 1000 ? 10 : totalStars > 100 ? 5 : 0;
+
+  return [
+    { label: "Stars",        score: Math.round(starsScore),     max: 25, color: "#f59e0b",  hint: `${totalStars} total stars across all repos` },
+    { label: "Community",    score: Math.round(communityScore), max: 15, color: "#6366f1",  hint: `Based on forks & star thresholds` },
+    { label: "Repositories", score: Math.round(reposScore),     max: 15, color: "#10b981",  hint: `${repoCount} public repos (target: 50)` },
+    { label: "Followers",    score: Math.round(followScore),    max: 15, color: "#3b82f6",  hint: `${followers} followers (target: 200)` },
+    { label: "Originality",  score: Math.round(origScore),      max: 10, color: "#ec4899",  hint: `${origRepos} original repos (target: 30)` },
+    { label: "Account Age",  score: Math.round(ageScore),       max: 10, color: "#8b5cf6",  hint: `${years.toFixed(1)} years (target: 5)` },
+    { label: "Star Bonus",   score: Math.round(bonusScore),     max: 10, color: "#06b6d4",  hint: `Bonus for >100 or >1000 total stars` },
+  ];
+}
+
+function getImprovementTips(data: any): { icon: string; tip: string }[] {
+  const tips: { icon: string; tip: string }[] = [];
+  const totalStars  = data.portfolio?.totalStars  || 0;
+  const followers   = data.overview?.followers    || 0;
+  const repoCount   = data.overview?.publicRepos  || 0;
+  const origRepos   = data.portfolio?.originalRepos || 0;
+
+  if (totalStars < 50)
+    tips.push({ icon: "⭐", tip: "Build projects that solve real problems to earn more stars." });
+  if (followers < 30)
+    tips.push({ icon: "👥", tip: "Follow developers, engage with issues & PRs to grow your network." });
+  if (!data.overview?.bio)
+    tips.push({ icon: "✏️", tip: "Add a bio to your GitHub profile — it improves discoverability." });
+  if (!data.overview?.blog)
+    tips.push({ icon: "🌐", tip: "Add a personal website or portfolio link to your profile." });
+  if (repoCount > 0 && origRepos / repoCount < 0.7)
+    tips.push({ icon: "🔨", tip: "Focus on building original projects rather than forking." });
+  if (repoCount < 15)
+    tips.push({ icon: "📦", tip: "Create more public repositories to showcase your skill breadth." });
+  if (totalStars < 10)
+    tips.push({ icon: "🚀", tip: "Share your projects on Twitter / LinkedIn to attract attention." });
+
+  return tips.slice(0, 4);
+}
+
 export function ProfileDashboard({ data }: ProfileDashboardProps) {
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const score = data.developerScore?.score ?? 0;
-  const level = data.developerScore?.level ?? "Developer";
-  const scoreColor = getScoreColor(score);
+  const score       = data.developerScore?.score ?? 0;
+  const level       = data.developerScore?.level ?? "Developer";
+  const scoreColor  = getScoreColor(score);
   const circumference = 2 * Math.PI * 60;
-  const offset = circumference - (score / 100) * circumference;
+  const offset      = circumference - (score / 100) * circumference;
+  const breakdown   = getScoreBreakdown(data);
+  const tips        = getImprovementTips(data);
+  const memberYears = data.overview?.createdAt ? getMemberYears(data.overview.createdAt) : "";
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -75,13 +136,14 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-24">
+      {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
         className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
         <div className="flex items-center gap-4">
           <img src={data.overview.avatarUrl} alt={data.overview.username}
             className="w-16 h-16 rounded-full border-2 border-primary/20" />
           <div>
-            <h2 className="text-2xl font-bold font-display flex items-center gap-2">
+            <h2 className="text-2xl font-bold font-display flex items-center gap-2 flex-wrap">
               {data.overview.name}
               <span className="text-muted-foreground font-light text-lg">@{data.overview.username}</span>
               <a href={data.overview.htmlUrl} target="_blank" rel="noreferrer"
@@ -100,6 +162,7 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
 
       <div id="profile-report" className="space-y-6 bg-background rounded-3xl p-1">
 
+        {/* Top Metric Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <MetricCard title="Repositories" value={<CountUp end={data.overview.publicRepos} duration={2} />}
             icon={<BookOpen className="w-5 h-5" />} delay={0.1} />
@@ -111,44 +174,82 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
             icon={<GitFork className="w-5 h-5" />} delay={0.4} />
         </div>
 
+        {/* Score + Profile Info + Languages */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Developer Score + Breakdown */}
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 }} className="glass-card rounded-3xl p-8 flex flex-col items-center">
-            <div className="flex items-center gap-2 mb-4 self-start">
+            transition={{ delay: 0.5 }} className="glass-card rounded-3xl p-6 flex flex-col">
+            <div className="flex items-center gap-2 mb-4">
               <Trophy className="w-5 h-5 text-primary" />
               <h3 className="font-semibold font-display">Developer Score</h3>
             </div>
-            <div className="relative w-44 h-44 my-2">
-              <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90">
-                <circle cx="80" cy="80" r="60" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="12" />
-                <motion.circle cx="80" cy="80" r="60" fill="none" stroke={scoreColor} strokeWidth="12"
-                  strokeLinecap="round" strokeDasharray={circumference}
-                  initial={{ strokeDashoffset: circumference }}
-                  animate={{ strokeDashoffset: offset }}
-                  transition={{ duration: 1.8, ease: "easeOut", delay: 0.8 }}
-                  style={{ filter: `drop-shadow(0 0 8px ${scoreColor}60)` }} />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <motion.span initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1.2 }} className="text-5xl font-bold font-display" style={{ color: scoreColor }}>
-                  {score}
-                </motion.span>
-                <span className="text-xs text-muted-foreground mt-0.5">/ 100</span>
+
+            {/* Circle */}
+            <div className="flex items-center justify-center mb-4">
+              <div className="relative w-36 h-36">
+                <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90">
+                  <circle cx="80" cy="80" r="60" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="12" />
+                  <motion.circle cx="80" cy="80" r="60" fill="none" stroke={scoreColor} strokeWidth="12"
+                    strokeLinecap="round" strokeDasharray={circumference}
+                    initial={{ strokeDashoffset: circumference }}
+                    animate={{ strokeDashoffset: offset }}
+                    transition={{ duration: 1.8, ease: "easeOut", delay: 0.8 }}
+                    style={{ filter: `drop-shadow(0 0 8px ${scoreColor}60)` }} />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <motion.span initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1.2 }} className="text-4xl font-bold font-display" style={{ color: scoreColor }}>
+                    {score}
+                  </motion.span>
+                  <span className="text-xs text-muted-foreground mt-0.5">/ 100</span>
+                </div>
               </div>
             </div>
+
             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
-              className="px-4 py-1.5 rounded-full text-sm font-semibold border mt-3"
+              className="px-4 py-1.5 rounded-full text-sm font-semibold border self-center mb-5"
               style={{ color: scoreColor, borderColor: `${scoreColor}40`, backgroundColor: `${scoreColor}10` }}>
               {level}
             </motion.span>
+
+            {/* Breakdown Bars */}
+            <div className="space-y-2.5">
+              {breakdown.map((item, i) => (
+                <div key={item.label}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-muted-foreground">{item.label}</span>
+                    <span className="text-xs font-medium" style={{ color: item.color }}>
+                      {item.score}/{item.max}
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                    <motion.div className="h-full rounded-full"
+                      style={{ backgroundColor: item.color }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(item.score / item.max) * 100}%` }}
+                      transition={{ delay: 1.0 + i * 0.08, duration: 0.6, ease: "easeOut" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </motion.div>
 
+          {/* Profile Info */}
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.55 }} className="glass-card rounded-3xl p-8">
             <h3 className="font-semibold font-display flex items-center gap-2 mb-5">
               <BookOpen className="w-5 h-5 text-primary" />Profile Info
             </h3>
             <div className="space-y-3">
+              {/* GitHub Member Badge */}
+              {memberYears && (
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-primary/30 bg-primary/10 text-primary">
+                    <Award className="w-3.5 h-3.5" /> {memberYears}
+                  </span>
+                </div>
+              )}
               {data.overview.location && (
                 <div className="flex items-center gap-3 text-sm">
                   <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -164,7 +265,7 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
               {data.overview.blog && (
                 <div className="flex items-center gap-3 text-sm">
                   <Link className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <a href={data.overview.blog.startsWith('http') ? data.overview.blog : `https://${data.overview.blog}`}
+                  <a href={data.overview.blog.startsWith("http") ? data.overview.blog : `https://${data.overview.blog}`}
                     target="_blank" rel="noreferrer" className="text-primary hover:underline truncate">
                     {data.overview.blog}
                   </a>
@@ -172,7 +273,9 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
               )}
               <div className="flex items-center gap-3 text-sm">
                 <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-foreground">Joined {new Date(data.overview.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                <span className="text-foreground">
+                  Joined {new Date(data.overview.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -209,33 +312,40 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
             )}
           </motion.div>
 
+          {/* Language Expertise — Bar Chart */}
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.6 }} className="glass-card rounded-3xl p-8">
-            <h3 className="font-semibold font-display flex items-center gap-2 mb-4">
-              <BookOpen className="w-5 h-5 text-primary" />Language Expertise
+            <h3 className="font-semibold font-display flex items-center gap-2 mb-6">
+              <Code2 className="w-5 h-5 text-primary" />Language Expertise
             </h3>
-            <div className="h-[220px]">
-              {data.languageExpertise?.length ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={data.languageExpertise.map((l: any) => ({ name: l.name, value: l.percentage }))}
-                      cx="50%" cy="50%" innerRadius={55} outerRadius={75} paddingAngle={4} dataKey="value" stroke="none">
-                      {data.languageExpertise.map((entry: any, index: number) => (
-                        <Cell key={index} fill={LANG_COLORS[entry.name] || CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }} formatter={(v: any) => [`${v}%`]} />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8}
-                      formatter={(value) => <span className="text-xs text-muted-foreground">{value}</span>} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No language data</div>
-              )}
-            </div>
+            {data.languageExpertise?.length ? (
+              <div className="space-y-4">
+                {data.languageExpertise.map((lang: any, i: number) => {
+                  const color = LANG_COLORS[lang.name] || FALLBACK_COLORS[i % FALLBACK_COLORS.length];
+                  return (
+                    <div key={lang.name}>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-sm font-medium" style={{ color }}>{lang.name}</span>
+                        <span className="text-xs font-semibold text-muted-foreground">{lang.percentage}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                        <motion.div className="h-full rounded-full"
+                          style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}60` }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${lang.percentage}%` }}
+                          transition={{ delay: 0.8 + i * 0.1, duration: 0.7, ease: "easeOut" }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No language data</div>
+            )}
           </motion.div>
         </div>
 
+        {/* Top Repositories */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}
           className="glass-card rounded-3xl p-8">
           <h3 className="font-semibold font-display flex items-center gap-2 mb-6">
@@ -249,7 +359,7 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
                   <h4 className="font-bold text-foreground group-hover:text-primary transition-colors truncate flex-1">{repo.name}</h4>
                   {repo.language && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded font-mono flex-shrink-0 ml-2"
-                      style={{ backgroundColor: `${LANG_COLORS[repo.language] || '#6366f1'}20`, color: LANG_COLORS[repo.language] || '#6366f1' }}>
+                      style={{ backgroundColor: `${LANG_COLORS[repo.language] || "#6366f1"}20`, color: LANG_COLORS[repo.language] || "#6366f1" }}>
                       {repo.language}
                     </span>
                   )}
@@ -268,9 +378,31 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
           </div>
         </motion.div>
 
+        {/* What to Improve */}
+        {tips.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.75 }}
+            className="glass-card rounded-3xl p-8">
+            <h3 className="font-semibold font-display flex items-center gap-2 mb-6">
+              <Lightbulb className="w-5 h-5 text-yellow-400" />How to Improve Your Score
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {tips.map((t, i) => (
+                <motion.div key={i}
+                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.8 + i * 0.08 }}
+                  className="flex items-start gap-3 p-4 rounded-xl bg-background border border-white/5 hover:border-yellow-400/20 transition-all">
+                  <span className="text-xl flex-shrink-0">{t.icon}</span>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{t.tip}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         <DeveloperCard data={data} />
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85 }}
+        {/* Share */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}
           className="glass-card rounded-3xl p-8 bg-gradient-to-br from-card to-primary/5 border-primary/20">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex-1">
