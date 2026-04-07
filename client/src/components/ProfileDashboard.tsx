@@ -4,13 +4,85 @@ import CountUp from "react-countup";
 import {
   Star, GitFork, BookOpen, Users, Download,
   MapPin, Calendar, Building2, Link, ExternalLink, Trophy,
-  Share2, Check, TrendingUp, Lightbulb, Award, Code2
+  Share2, Check, Lightbulb, Award, Code2
 } from "lucide-react";
 import { MetricCard } from "./MetricCard";
 import { DeveloperCard } from "./DeveloperCard";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useToast } from "@/hooks/use-toast";
+import { useApp } from "@/context/AppContext";
+
+const T = {
+  en: {
+    repositories: "Repositories", followers: "Followers", totalStars: "Total Stars", totalForks: "Total Forks",
+    developerScore: "Developer Score", profileInfo: "Profile Info", languageExpertise: "Language Expertise",
+    topRepositories: "Top Repositories", howToImprove: "How to Improve Your Score",
+    memberSince: "Joined", following: "Following", followingLabel: "developers",
+    mostStarred: "Most Starred", mostForked: "Most Forked", avgStars: "Avg Stars / Repo", originalRepos: "Original Repos",
+    shareAnalysis: "Share This Analysis", shareDesc: "Copy a link to share this developer profile analysis with anyone.",
+    copyLink: "Copy Link", copied: "Copied!", viewOnGithub: "View on GitHub",
+    exportPdf: "Export PDF", exporting: "Exporting...",
+    exportSuccess: "Export Successful", exportSuccessDesc: "Your PDF report has been downloaded.",
+    exportFail: "Export Failed", exportFailDesc: "There was an error generating the PDF.",
+    linkCopied: "Link copied!", linkCopiedDesc: "Share this link to show the analysis.",
+    noLanguageData: "No language data", noBio: "No bio available.", noDesc: "No description",
+    score: "/ 100",
+    tips: [
+      { icon: "⭐", tip: "Build projects that solve real problems to earn more stars." },
+      { icon: "👥", tip: "Follow developers, engage with issues & PRs to grow your network." },
+      { icon: "✏️", tip: "Add a bio to your GitHub profile — it improves discoverability." },
+      { icon: "🌐", tip: "Add a personal website or portfolio link to your profile." },
+      { icon: "🔨", tip: "Focus on building original projects rather than forking." },
+      { icon: "📦", tip: "Create more public repositories to showcase your skill breadth." },
+      { icon: "🚀", tip: "Share your projects on Twitter / LinkedIn to attract attention." },
+    ],
+    breakdown: ["Stars","Community","Repositories","Followers","Originality","Account Age","Star Bonus"],
+    breakdownHints: [
+      (s:number,n:number)=>`${n} total stars across all repos`,
+      (s:number)=>`Based on forks & star thresholds`,
+      (s:number,n:number)=>`${n} public repos (target: 50)`,
+      (s:number,n:number)=>`${n} followers (target: 200)`,
+      (s:number,n:number)=>`${n} original repos (target: 30)`,
+      (s:number,n:number)=>`${n.toFixed(1)} years (target: 5)`,
+      ()=>`Bonus for >100 or >1000 total stars`,
+    ],
+  },
+  tr: {
+    repositories: "Repolar", followers: "Takipçi", totalStars: "Toplam Yıldız", totalForks: "Toplam Fork",
+    developerScore: "Geliştirici Skoru", profileInfo: "Profil Bilgisi", languageExpertise: "Dil Uzmanlığı",
+    topRepositories: "En İyi Repolar", howToImprove: "Skorunu Nasıl Artırırsın?",
+    memberSince: "Katılım", following: "Takip Edilen", followingLabel: "geliştirici",
+    mostStarred: "En Çok Yıldız", mostForked: "En Çok Fork", avgStars: "Ort. Yıldız / Repo", originalRepos: "Orijinal Repo",
+    shareAnalysis: "Bu Analizi Paylaş", shareDesc: "Bu geliştirici profil analizini herkesle paylaşmak için linki kopyala.",
+    copyLink: "Linki Kopyala", copied: "Kopyalandı!", viewOnGithub: "GitHub'da Gör",
+    exportPdf: "PDF İndir", exporting: "İndiriliyor...",
+    exportSuccess: "İndirme Başarılı", exportSuccessDesc: "PDF raporunuz indirildi.",
+    exportFail: "İndirme Başarısız", exportFailDesc: "PDF oluşturulurken hata oluştu.",
+    linkCopied: "Link kopyalandı!", linkCopiedDesc: "Analizi göstermek için bu linki paylaş.",
+    noLanguageData: "Dil verisi yok", noBio: "Bio eklenmemiş.", noDesc: "Açıklama yok",
+    score: "/ 100",
+    tips: [
+      { icon: "⭐", tip: "Gerçek problemleri çözen projeler yap, yıldız sayını artır." },
+      { icon: "👥", tip: "Geliştiricileri takip et, issue ve PR'lara katıl, ağını büyüt." },
+      { icon: "✏️", tip: "GitHub profiline bir bio ekle — bulunma olasılığını artırır." },
+      { icon: "🌐", tip: "Profiline kişisel web site veya portfolyo linki ekle." },
+      { icon: "🔨", tip: "Fork yerine kendi özgün projelerini geliştirmeye odaklan." },
+      { icon: "📦", tip: "Beceri çeşitliliğini göstermek için daha fazla public repo oluştur." },
+      { icon: "🚀", tip: "Projelerini Twitter / LinkedIn'de paylaş, ilgi çek." },
+    ],
+    breakdown: ["Yıldız","Topluluk","Repolar","Takipçi","Özgünlük","Hesap Yaşı","Yıldız Bonusu"],
+    breakdownHints: [
+      (s:number,n:number)=>`Tüm repolarda ${n} yıldız`,
+      ()=>`Fork ve yıldız eşiklerine göre`,
+      (s:number,n:number)=>`${n} public repo (hedef: 50)`,
+      (s:number,n:number)=>`${n} takipçi (hedef: 200)`,
+      (s:number,n:number)=>`${n} özgün repo (hedef: 30)`,
+      (s:number,n:number)=>`${n.toFixed(1)} yıl (hedef: 5)`,
+      ()=>`>100 veya >1000 yıldız bonusu`,
+    ],
+  },
+};
 
 interface ProfileDashboardProps {
   data: any;
@@ -94,6 +166,8 @@ function getImprovementTips(data: any): { icon: string; tip: string }[] {
 
 export function ProfileDashboard({ data }: ProfileDashboardProps) {
   const { toast } = useToast();
+  const { lang } = useApp();
+  const t = T[lang];
   const [isExporting, setIsExporting] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -102,9 +176,48 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
   const scoreColor  = getScoreColor(score);
   const circumference = 2 * Math.PI * 60;
   const offset      = circumference - (score / 100) * circumference;
-  const breakdown   = getScoreBreakdown(data);
-  const tips        = getImprovementTips(data);
   const memberYears = data.overview?.createdAt ? getMemberYears(data.overview.createdAt) : "";
+
+  // Compute breakdown labels + hints from t
+  const breakdown = (() => {
+    const repoCount  = data.overview?.publicRepos || 0;
+    const totalStars = data.portfolio?.totalStars  || 0;
+    const totalForks = data.portfolio?.totalForks  || 0;
+    const followers  = data.overview?.followers    || 0;
+    const years      = (Date.now() - new Date(data.overview?.createdAt || 0).getTime()) / (1000 * 60 * 60 * 24 * 365);
+    const origRepos  = data.portfolio?.originalRepos || 0;
+    const starsScore    = Math.min(25, (totalStars  / 500) * 25);
+    const followScore   = Math.min(15, (followers   / 200) * 15);
+    const reposScore    = Math.min(15, (repoCount   / 50)  * 15);
+    const ageScore      = Math.min(10, (years       / 5)   * 10);
+    const origScore     = Math.min(10, (origRepos   / 30)  * 10);
+    const communityScore = (totalStars > 1000 || totalForks > 50) ? 15 : (totalForks > 0 || totalStars > 0) ? 7 : 0;
+    const bonusScore    = totalStars > 1000 ? 10 : totalStars > 100 ? 5 : 0;
+    const scores = [starsScore, communityScore, reposScore, followScore, origScore, ageScore, bonusScore];
+    const maxes  = [25, 15, 15, 15, 10, 10, 10];
+    const colors = ["#f59e0b","#6366f1","#10b981","#3b82f6","#ec4899","#8b5cf6","#06b6d4"];
+    const hintArgs = [totalStars, 0, repoCount, followers, origRepos, years, 0];
+    return t.breakdown.map((label, i) => ({
+      label, color: colors[i], score: Math.round(scores[i]), max: maxes[i],
+    }));
+  })();
+
+  const tips = (() => {
+    const totalStars = data.portfolio?.totalStars || 0;
+    const followers  = data.overview?.followers   || 0;
+    const repoCount  = data.overview?.publicRepos || 0;
+    const origRepos  = data.portfolio?.originalRepos || 0;
+    return t.tips.filter((tip, i) => {
+      if (i === 0) return totalStars < 50;
+      if (i === 1) return followers < 30;
+      if (i === 2) return !data.overview?.bio;
+      if (i === 3) return !data.overview?.blog;
+      if (i === 4) return repoCount > 0 && origRepos / repoCount < 0.7;
+      if (i === 5) return repoCount < 15;
+      if (i === 6) return totalStars < 10;
+      return false;
+    }).slice(0, 4);
+  })();
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -164,13 +277,13 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
 
         {/* Top Metric Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <MetricCard title="Repositories" value={<CountUp end={data.overview.publicRepos} duration={2} />}
+          <MetricCard title={t.repositories} value={<CountUp end={data.overview.publicRepos} duration={2} />}
             icon={<BookOpen className="w-5 h-5" />} delay={0.1} />
-          <MetricCard title="Followers" value={<CountUp end={data.overview.followers} duration={2} separator="," />}
+          <MetricCard title={t.followers} value={<CountUp end={data.overview.followers} duration={2} separator="," />}
             icon={<Users className="w-5 h-5" />} delay={0.2} />
-          <MetricCard title="Total Stars" value={<CountUp end={data.portfolio?.totalStars || 0} duration={2} separator="," />}
+          <MetricCard title={t.totalStars} value={<CountUp end={data.portfolio?.totalStars || 0} duration={2} separator="," />}
             icon={<Star className="w-5 h-5" />} delay={0.3} />
-          <MetricCard title="Total Forks" value={<CountUp end={data.portfolio?.totalForks || 0} duration={2} separator="," />}
+          <MetricCard title={t.totalForks} value={<CountUp end={data.portfolio?.totalForks || 0} duration={2} separator="," />}
             icon={<GitFork className="w-5 h-5" />} delay={0.4} />
         </div>
 
@@ -182,7 +295,7 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
             transition={{ delay: 0.5 }} className="glass-card rounded-3xl p-6 flex flex-col">
             <div className="flex items-center gap-2 mb-4">
               <Trophy className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold font-display">Developer Score</h3>
+              <h3 className="font-semibold font-display">{t.developerScore}</h3>
             </div>
 
             {/* Circle */}
@@ -239,7 +352,7 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.55 }} className="glass-card rounded-3xl p-8">
             <h3 className="font-semibold font-display flex items-center gap-2 mb-5">
-              <BookOpen className="w-5 h-5 text-primary" />Profile Info
+              <BookOpen className="w-5 h-5 text-primary" />{t.profileInfo}
             </h3>
             <div className="space-y-3">
               {/* GitHub Member Badge */}
@@ -274,19 +387,19 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
               <div className="flex items-center gap-3 text-sm">
                 <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <span className="text-foreground">
-                  Joined {new Date(data.overview.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                  {t.memberSince} {new Date(data.overview.createdAt).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { month: "long", year: "numeric" })}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-foreground">Following {data.overview.following} developers</span>
+                <span className="text-foreground">{t.following} {data.overview.following} {t.followingLabel}</span>
               </div>
             </div>
             {data.portfolio && (
               <div className="mt-5 pt-5 border-t border-white/5 space-y-2">
                 {data.portfolio.mostStarred && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Most Starred</span>
+                    <span className="text-muted-foreground">{t.mostStarred}</span>
                     <span className="font-medium text-foreground flex items-center gap-1">
                       <Star className="w-3 h-3 text-yellow-500" />{data.portfolio.mostStarred.name}
                     </span>
@@ -294,18 +407,18 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
                 )}
                 {data.portfolio.mostForked && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Most Forked</span>
+                    <span className="text-muted-foreground">{t.mostForked}</span>
                     <span className="font-medium text-foreground flex items-center gap-1">
                       <GitFork className="w-3 h-3 text-primary" />{data.portfolio.mostForked.name}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Avg Stars / Repo</span>
+                  <span className="text-muted-foreground">{t.avgStars}</span>
                   <span className="font-medium text-foreground">{data.portfolio.avgStars}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Original Repos</span>
+                  <span className="text-muted-foreground">{t.originalRepos}</span>
                   <span className="font-medium text-foreground">{data.portfolio.originalRepos}</span>
                 </div>
               </div>
@@ -316,7 +429,7 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.6 }} className="glass-card rounded-3xl p-8">
             <h3 className="font-semibold font-display flex items-center gap-2 mb-6">
-              <Code2 className="w-5 h-5 text-primary" />Language Expertise
+              <Code2 className="w-5 h-5 text-primary" />{t.languageExpertise}
             </h3>
             {data.languageExpertise?.length ? (
               <div className="space-y-4">
@@ -340,7 +453,7 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
                 })}
               </div>
             ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No language data</div>
+              <div className="h-full flex items-center justify-center text-muted-foreground text-sm">{t.noLanguageData}</div>
             )}
           </motion.div>
         </div>
@@ -349,7 +462,7 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}
           className="glass-card rounded-3xl p-8">
           <h3 className="font-semibold font-display flex items-center gap-2 mb-6">
-            <Star className="w-5 h-5 text-primary" />Top Repositories
+            <Star className="w-5 h-5 text-primary" />{t.topRepositories}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {data.topRepos?.map((repo: any, i: number) => (
@@ -364,7 +477,7 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-2 h-8">{repo.description || "No description"}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2 h-8">{repo.description || t.noDesc}</p>
                 <div className="flex items-center gap-4 mt-3">
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Star className="w-3 h-3" />{repo.stars.toLocaleString()}
@@ -383,7 +496,7 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.75 }}
             className="glass-card rounded-3xl p-8">
             <h3 className="font-semibold font-display flex items-center gap-2 mb-6">
-              <Lightbulb className="w-5 h-5 text-yellow-400" />How to Improve Your Score
+              <Lightbulb className="w-5 h-5 text-yellow-400" />{t.howToImprove}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {tips.map((t, i) => (
@@ -407,19 +520,19 @@ export function ProfileDashboard({ data }: ProfileDashboardProps) {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex-1">
               <h3 className="font-semibold font-display flex items-center gap-2 mb-2">
-                <Share2 className="w-5 h-5 text-primary" />Share This Analysis
+                <Share2 className="w-5 h-5 text-primary" />{t.shareAnalysis}
               </h3>
-              <p className="text-sm text-muted-foreground">Copy a link to share this developer profile analysis with anyone.</p>
+              <p className="text-sm text-muted-foreground">{t.shareDesc}</p>
             </div>
             <div className="flex gap-3 flex-shrink-0">
               <button onClick={handleCopyLink}
                 className="flex items-center gap-2 px-5 py-3 rounded-xl border border-white/10 bg-background hover:border-primary/30 text-sm font-medium transition-all">
                 {copied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
-                {copied ? "Copied!" : "Copy Link"}
+                {copied ? t.copied : t.copyLink}
               </button>
               <a href={data.overview.htmlUrl} target="_blank" rel="noreferrer"
                 className="flex items-center gap-2 px-5 py-3 rounded-xl bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity">
-                <ExternalLink className="w-4 h-4" /> View on GitHub
+                <ExternalLink className="w-4 h-4" /> {t.viewOnGithub}
               </a>
             </div>
           </div>
